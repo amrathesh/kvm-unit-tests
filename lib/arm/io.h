@@ -8,5 +8,6 @@
 #define _ARM_IO_H_
 
 extern void io_init(void);
+extern int putchar(int c);
 
 #endif
