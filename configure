@@ -195,14 +195,19 @@ else
     fi
 fi
 
-if [ "$efi" ] && [ "$arch" != "x86_64" ]; then
+if [ "$efi" ] && [ "$arch" != "x86_64" ] && [ "$arch" != "arm64" ]; then
     echo "--[enable|disable]-efi is not supported for $arch"
     usage
 fi
 
 if [ -z "$page_size" ]; then
-    [ "$arch" = "arm64" ] && page_size="65536"
-    [ "$arch" = "arm" ] && page_size="4096"
+    if [ "$efi" = 'y' ] && [ "$arch" = "arm64" ]; then
+        page_size="4096"
+    elif [ "$arch" = "arm64" ]; then
+        page_size="65536"
+    elif [ "$arch" = "arm" ]; then
+        page_size="4096"
+    fi
 else
     if [ "$arch" != "arm64" ]; then
         echo "--page-size is not supported for $arch"
@@ -216,6 +221,10 @@ else
            [ "$page_size" != "65536" ]; then
         echo "arm64 doesn't support page size of $page_size"
         usage
+    fi
+    if [ "$efi" = 'y' ] && [ "$page_size" != "4096" ]; then
+        echo "efi must use 4K pages"
+        exit 1
     fi
 fi
 
