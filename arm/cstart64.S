@@ -272,17 +272,17 @@ primary_entry:
 
 	/* Clean + invalidate the code */
 	adrp	x4, _text
-	ldr	x4, [x4, :lo12:_text]
+	add	x4, x4, :lo12:_text
 	adrp	x5, _etext
-	ldr	x5, [x5, :lo12:_etext]
+	add	x5, x5, :lo12:_etext
 	sub	x5, x5, x4
 	dcache_by_line_op civac, sy, x4, x5, x6, x7
 
 	/* Clean + invalidate the code */
 	adrp	x4, _data
-	ldr	x4, [x4, :lo12:_data]
+	add	x4, x4, :lo12:_data
 	adrp	x5, _edata
-	ldr	x5, [x5, :lo12:_edata]
+	add	x5, x5, :lo12:_edata
 	sub	x5, x5, x4
 	dcache_by_line_op civac, sy, x4, x5, x6, x7
 

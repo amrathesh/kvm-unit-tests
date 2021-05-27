@@ -191,10 +191,10 @@ static void mem_init(phys_addr_t freemem_start)
 	mem.end &= PHYS_MASK;
 
 	/* Check for holes */
-	r = mem_region_find(mem.start);
+	/*r = mem_region_find(mem.start);
 	while (r && r->end != mem.end)
 		r = mem_region_find(r->end);
-	assert(r);
+		assert(r);*/
 
 	/* Ensure our selected freemem range is somewhere in our full range */
 	assert(freemem_start >= mem.start && freemem->end <= mem.end);
@@ -263,6 +263,7 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 	assert(sizeof(long) == 8 || freemem_start < (3ul << 30));
 	freemem = (void *)(uintptr_t)freemem_start;
 
+	assert(current_level() == CurrentEL_EL1);
 	if (target_efi()) {
 		exceptions_init();
 		printf("Load address: %" PRIxPTR "\n", text);

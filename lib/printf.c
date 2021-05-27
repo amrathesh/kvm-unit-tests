@@ -201,6 +201,7 @@ int vsnprintf(char *buf, int size, const char *fmt, va_list va)
 	     */
 	    nlong = 1;
 	    goto morefmt;
+	case 'i':
 	case 'd':
 	    switch (nlong) {
 	    case 0:

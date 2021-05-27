@@ -40,6 +40,7 @@ SECTIONS
     .eh_frame : { *(.eh_frame) }
 
     .rodata   : { *(.rodata*) }
+    PROVIDE(_data = .);
     .data     : { *(.data) }
     . = ALIGN(16);
     PROVIDE(bss = .);
@@ -48,6 +49,7 @@ SECTIONS
     PROVIDE(ebss = .);
     . = ALIGN(64K);
     PROVIDE(edata = .);
+    PROVIDE(_edata = .);
 
     /*
      * stack depth is 16K for arm and PAGE_SIZE for arm64, see THREAD_SIZE
