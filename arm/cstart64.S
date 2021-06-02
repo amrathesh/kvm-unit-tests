@@ -366,7 +366,7 @@ secondary_entry:
 	cmp	x0, CurrentEL_EL2
 	b.ne	1f
 	bl	el2_setup
-
+1:
 	/* Enable FP/ASIMD */
 	mov	x0, #(3 << 20)
 	msr	cpacr_el1, x0
