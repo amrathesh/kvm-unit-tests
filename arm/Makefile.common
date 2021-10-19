@@ -4,17 +4,25 @@
 # Authors: Andrew Jones <drjones@redhat.com>
 #
 
-tests-common  = $(TEST_DIR)/selftest.$(exe)
-tests-common += $(TEST_DIR)/spinlock-test.$(exe)
-tests-common += $(TEST_DIR)/pci-test.$(exe)
-tests-common += $(TEST_DIR)/pmu.$(exe)
-tests-common += $(TEST_DIR)/gic.$(exe)
-tests-common += $(TEST_DIR)/psci.$(exe)
-tests-common += $(TEST_DIR)/sieve.$(exe)
-tests-common += $(TEST_DIR)/pl031.$(exe)
-tests-common += $(TEST_DIR)/dummy.$(exe)
+ifeq ($(KUT_EXTTEST),)
+	tests-common  = $(TEST_DIR)/selftest.$(exe)
+	tests-common += $(TEST_DIR)/spinlock-test.$(exe)
+	tests-common += $(TEST_DIR)/pci-test.$(exe)
+	tests-common += $(TEST_DIR)/pmu.$(exe)
+	tests-common += $(TEST_DIR)/gic.$(exe)
+	tests-common += $(TEST_DIR)/psci.$(exe)
+	tests-common += $(TEST_DIR)/sieve.$(exe)
+	tests-common += $(TEST_DIR)/pl031.$(exe)
+	tests-common += $(TEST_DIR)/dummy.$(exe)
 
-tests-all = $(tests-common) $(tests)
+	tests-all = $(tests-common) $(tests)
+else
+	include $(KUT_EXTTEST)/Makefile
+	tests-all = $(addprefix $(KUT_EXTTEST)/,$(tests-ext))
+	cflatobjs += $(addprefix $(KUT_EXTTEST)/,$(cflatobjs-ext))
+	CFLAGS += $(CFLAGS-ext)
+endif
+
 all: directories $(tests-all)
 
 $(TEST_DIR)/sieve.elf: AUXFLAGS = 0x1

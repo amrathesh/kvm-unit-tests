@@ -41,11 +41,14 @@ else
 exe = flat
 endif
 
-# arm64 specific tests
-tests = $(TEST_DIR)/timer.$(exe)
-tests += $(TEST_DIR)/micro-bench.$(exe)
-tests += $(TEST_DIR)/cache.$(exe)
-tests += $(TEST_DIR)/debug.$(exe)
+
+ifeq ($(KUT_EXTTEST),)
+	# arm64 specific tests
+	tests = $(TEST_DIR)/timer.$(exe)
+	tests += $(TEST_DIR)/micro-bench.$(exe)
+	tests += $(TEST_DIR)/cache.$(exe)
+	tests += $(TEST_DIR)/debug.$(exe)
+endif
 
 include $(SRCDIR)/$(TEST_DIR)/Makefile.common
 
