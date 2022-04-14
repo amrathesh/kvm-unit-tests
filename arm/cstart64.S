@@ -23,7 +23,7 @@
 9997:
 .endm
 
-#ifndef TARGET_EFI
+#ifndef CONFIG_EFI
 .section .init
 
 /*
