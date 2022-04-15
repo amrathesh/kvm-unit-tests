@@ -11,6 +11,9 @@
 #include <asm/setup.h>
 #include <asm/page.h>
 #include <asm/smp.h>
+#ifdef CONFIG_EFI
+#include "acpi.h"
+#endif
 
 static int psci_invoke_none(unsigned int function_id, unsigned long arg0,
 			    unsigned long arg1, unsigned long arg2)
@@ -58,6 +61,16 @@ void psci_system_off(void)
 
 void psci_set_conduit(void)
 {
+#ifdef CONFIG_EFI
+	struct fadt_descriptor_rev1 *fadt = find_acpi_table_addr(FACP_SIGNATURE);
+	assert_msg(fadt, "Unable to find ACPI FADT");
+	assert_msg(fadt->arm_boot_flags & ACPI_FADT_PSCI_COMPLIANT,
+		   "PSCI is not supported in this platfrom");
+	if (fadt->arm_boot_flags & ACPI_FADT_PSCI_USE_HVC)
+		psci_invoke = psci_invoke_hvc;
+	else
+		psci_invoke = psci_invoke_smc;
+#else
 	const void *fdt = dt_fdt();
 	const struct fdt_property *method;
 	int node, len;
@@ -74,4 +87,5 @@ void psci_set_conduit(void)
 		psci_invoke = psci_invoke_smc;
 	else
 		assert_msg(false, "Unknown PSCI conduit: %s", method->data);
+#endif
 }

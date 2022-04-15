@@ -57,6 +57,7 @@ void mmu_enable(pgd_t *pgtable)
 {
 	struct thread_info *info = current_thread_info();
 
+	printf("Enabling MMU, base pointer at %#lx\n", __pa(pgtable));
 	asm_mmu_enable(__pa(pgtable));
 
 	info->pgtable = pgtable;
@@ -217,8 +218,8 @@ void __iomem *__ioremap(phys_addr_t phys_addr, size_t size)
 
 phys_addr_t __virt_to_phys(unsigned long addr)
 {
-	if (mmu_enabled()) {
-		pgd_t *pgtable = current_thread_info()->pgtable;
+	pgd_t *pgtable = current_thread_info()->pgtable;
+	if (mmu_enabled() && pgtable) {
 		return virt_to_pte_phys(pgtable, (void *)addr);
 	}
 	return addr;

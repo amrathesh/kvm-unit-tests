@@ -54,6 +54,7 @@ cflatobjs += lib/arm/delay.o
 cflatobjs += lib/arm/gic.o lib/arm/gic-v2.o lib/arm/gic-v3.o
 ifeq ($(CONFIG_EFI),y)
 cflatobjs += lib/efi.o
+cflatobjs += lib/arm/acpi.o
 cflatobjs += arm/efi/reloc_aarch64.o
 endif
 

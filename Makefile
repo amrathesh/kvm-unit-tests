@@ -56,6 +56,9 @@ EFI_CFLAGS += -fshort-wchar
 EFI_CFLAGS += -fPIC
 # Create shared library
 EFI_LDFLAGS := -Bsymbolic -shared -nostdlib
+ifeq ($(ARCH_NAME),aarch64)
+EFI_LDFLAGS += -defsym=EFI_SUBSYSTEM=0xa --build-id=sha1 $(TEST_DIR)/efi/crt0-efi-$(ARCH_NAME).o
+endif
 
 .PRECIOUS: %.so
 endif

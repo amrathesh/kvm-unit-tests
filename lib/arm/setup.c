@@ -28,13 +28,15 @@
 #include <asm/timer.h>
 #include <asm/psci.h>
 
+#include "acpi.h"
 #include "io.h"
+#include "efi.h"
 
 #define MAX_DT_MEM_REGIONS	16
 #define NR_EXTRA_MEM_REGIONS	16
 #define NR_INITIAL_MEM_REGIONS	(MAX_DT_MEM_REGIONS + NR_EXTRA_MEM_REGIONS)
 
-extern unsigned long _text, _etext;
+extern unsigned long _text, _etext, _data, _edata;
 
 struct timer_state __timer_state;
 
@@ -46,7 +48,7 @@ int nr_cpus;
 
 static struct mem_region __initial_mem_regions[NR_INITIAL_MEM_REGIONS + 1];
 struct mem_region *mem_regions = __initial_mem_regions;
-phys_addr_t __phys_offset, __phys_end;
+phys_addr_t __phys_offset = (phys_addr_t)-1, __phys_end = 0;
 
 extern void exceptions_init(void);
 extern void asm_mmu_disable(void);
@@ -73,11 +75,16 @@ static void cpu_set(int fdtnode __unused, u64 regval, void *info __unused)
 
 static void cpu_init(void)
 {
+#ifdef CONFIG_EFI
+	nr_cpus = 0;
+	acpi_for_each_cpu(cpu_set);
+#else
 	int ret;
 
 	nr_cpus = 0;
 	ret = dt_for_each_cpu_node(cpu_set, NULL);
 	assert(ret == 0);
+#endif
 	set_cpu_online(0, true);
 }
 
@@ -205,6 +212,15 @@ static void mem_init(phys_addr_t freemem_start)
 
 static void timer_save_state(void)
 {
+#ifdef CONFIG_EFI
+	struct gtdt_descriptor *gtdt = find_acpi_table_addr(GTDT_SIGNATURE);
+	assert_msg(gtdt, "Unable to find ACPI GTDT");
+	__timer_state.ptimer.irq = gtdt->non_secure_el1_interrupt;
+	__timer_state.ptimer.irq_flags = gtdt->non_secure_el1_flags;
+
+	__timer_state.vtimer.irq = gtdt->virtual_timer_interrupt;
+	__timer_state.vtimer.irq_flags = gtdt->virtual_timer_flags;
+#else	
 	const struct fdt_property *prop;
 	const void *fdt = dt_fdt();
 	int node, len;
@@ -238,23 +254,19 @@ static void timer_save_state(void)
 	assert(fdt32_to_cpu(data[6]) == 1 /* PPI */);
 	__timer_state.vtimer.irq = fdt32_to_cpu(data[7]);
 	__timer_state.vtimer.irq_flags = fdt32_to_cpu(data[8]);
+#endif
 }
 
 void setup(const void *fdt, phys_addr_t freemem_start)
 {
-	uintptr_t text = (uintptr_t)&_text;
 	void *freemem;
-	const char *tmp;
+	const char *bootargs, *tmp;
 	u32 fdt_size;
 	int ret;
 
 	assert(sizeof(long) == 8 || freemem_start < (3ul << 30));
 	freemem = (void *)(uintptr_t)freemem_start;
 
-	if (target_efi()) {
-		exceptions_init();
-		printf("Load address: %" PRIxPTR "\n", text);
-	}
 
 	/* Move the FDT to the base of free memory */
 	fdt_size = fdt_totalsize(fdt);
@@ -273,16 +285,9 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 		freemem += initrd_size;
 	}
 
-	freemem_start = PAGE_ALIGN((uintptr_t)freemem);
-
-	if (target_efi()) {
-		mem_init(freemem_start);
-		asm_mmu_disable();
-	} else {
-		mem_regions_add_dt_regions();
-		mem_regions_add_assumed();
-		mem_init(freemem_start);
-	}
+	mem_regions_add_dt_regions();
+	mem_regions_add_assumed();
+	mem_init(PAGE_ALIGN((unsigned long)freemem));
 
 	psci_set_conduit();
 	cpu_init();
@@ -295,12 +300,9 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 
 	timer_save_state();
 
-	if (!target_efi()) {
-		const char *bootargs;
-		ret = dt_get_bootargs(&bootargs);
-		assert(ret == 0 || ret == -FDT_ERR_NOTFOUND);
-		setup_args_progname(bootargs);
-	}
+	ret = dt_get_bootargs(&bootargs);
+	assert(ret == 0 || ret == -FDT_ERR_NOTFOUND);
+	setup_args_progname(bootargs);
 
 	if (initrd) {
 		/* environ is currently the only file in the initrd */
@@ -312,3 +314,200 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 	if (!(auxinfo.flags & AUXINFO_MMU_OFF))
 		setup_vm();
 }
+
+#ifdef CONFIG_EFI
+
+static efi_status_t setup_rsdp(efi_bootinfo_t *efi_bootinfo)
+{
+	efi_status_t status;
+	struct rsdp_descriptor *rsdp;
+
+	/*
+	 * RSDP resides in an EFI_ACPI_RECLAIM_MEMORY region, which is not used
+	 * by kvm-unit-tests arm64 memory allocator. So it is not necessary to
+	 * copy the data structure to another memory region to prevent
+	 * unintentional overwrite.
+	 */
+	status = efi_get_system_config_table(ACPI_20_TABLE_GUID, (void **)&rsdp);
+	if (status != EFI_SUCCESS) {
+		return status;
+	}
+
+	set_efi_rsdp(rsdp);
+
+	return EFI_SUCCESS;
+}
+
+#if 0
+static const char *MemTypes[] = {
+"EfiReservedMemoryType",
+"EfiLoaderCode",
+"EfiLoaderData",
+"EfiBootServicesCode",
+"EfiBootServicesData",
+"EfiRuntimeServicesCode",
+"EfiRuntimeServicesData",
+"EfiConventionalMemory",
+"EfiUnusableMemory",
+"EfiACPIReclaimMemory",
+"EfiACPIMemoryNVS",
+"EfiMemoryMappedIO",
+"EfiMemoryMappedIOPortSpace",
+"EfiPalCode",
+};
+#endif
+
+static efi_status_t setup_memory_allocator(efi_bootinfo_t *efi_bootinfo)
+{
+	int i;
+	unsigned long free_mem_pages = 0;
+	unsigned long free_mem_start = 0;
+	struct efi_boot_memmap *map = &(efi_bootinfo->mem_map);
+	efi_memory_desc_t *buffer = *map->map;
+	efi_memory_desc_t *d = NULL;
+	phys_addr_t base, top;
+	struct mem_region *r;
+	uintptr_t text = (uintptr_t)&_text, etext = __ALIGN((uintptr_t)&_etext, 4096);
+        uintptr_t data = (uintptr_t)&_data, edata = __ALIGN((uintptr_t)&_edata, 4096);
+
+	/*
+	 * The 'buffer' contains multiple descriptors that describe memory
+	 * regions maintained by UEFI. This code records the largest free
+	 * EFI_CONVENTIONAL_MEMORY region which will be used to set up the
+	 * memory allocator, so that the memory allocator can work in the
+	 * largest free continuous memory region.
+	 */
+	for (i = 0, r = &mem_regions[0]; i < *(map->map_size); i += *(map->desc_size), ++r) {
+		d = (efi_memory_desc_t *)(&((u8 *)buffer)[i]);
+		//printf("type=%s %lx %lx\n", MemTypes[d->type], d->phys_addr, d->phys_addr + d->num_pages * 4096);
+
+		r->start = d->phys_addr;
+		r->end = d->phys_addr + d->num_pages * 4096;
+
+		switch(d->type) {
+		case EFI_RESERVED_TYPE:
+		case EFI_LOADER_DATA:
+		case EFI_BOOT_SERVICES_CODE:
+		case EFI_BOOT_SERVICES_DATA:
+		case EFI_RUNTIME_SERVICES_CODE:
+		case EFI_RUNTIME_SERVICES_DATA:
+		case EFI_UNUSABLE_MEMORY:
+		case EFI_ACPI_RECLAIM_MEMORY:
+		case EFI_ACPI_MEMORY_NVS:
+		case EFI_PAL_CODE:
+			r->flags = MR_F_RESERVED;
+			break;
+		case EFI_MEMORY_MAPPED_IO:
+		case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
+			r->flags = MR_F_IO;
+			break;
+		case EFI_LOADER_CODE:
+                        if (r->start <= text && r->end > text) {
+                                /* This is the unit test region. Flag the code separately. */
+                                phys_addr_t tmp = r->end;
+                                assert(etext <= data);
+                                assert(edata <= r->end);
+                                r->flags = MR_F_CODE;
+                                r->end = data;
+                                ++r;
+                                r->start = data;
+                                r->end = tmp;
+                        } else {
+                                r->flags = MR_F_RESERVED;
+                        }
+                        break;			
+		case EFI_CONVENTIONAL_MEMORY:		
+			if (free_mem_pages < d->num_pages) {
+				free_mem_pages = d->num_pages;
+				free_mem_start = d->phys_addr;
+			}
+			break;
+		}
+
+		if (!(r->flags & MR_F_IO)) {
+                        if (r->start < __phys_offset)
+                                __phys_offset = r->start;
+                        if (r->end > __phys_end)
+                                __phys_end = r->end;
+                }
+	}
+	__phys_end &= PHYS_MASK;
+
+	if (free_mem_pages == 0) {
+		return EFI_OUT_OF_RESOURCES;
+	}
+	assert(sizeof(long) == 8 || free_mem_start < (3ul << 30));
+
+	phys_alloc_init(free_mem_start, free_mem_pages << EFI_PAGE_SHIFT);
+	phys_alloc_set_minimum_alignment(SMP_CACHE_BYTES);
+
+	phys_alloc_get_unused(&base, &top);
+	base = PAGE_ALIGN(base);
+	top = top & PAGE_MASK;
+	assert(sizeof(long) == 8 || !(base >> 32));
+	if (sizeof(long) != 8 && (top >> 32) != 0)
+		top = ((uint64_t)1 << 32);
+	page_alloc_init_area(0, base >> PAGE_SHIFT, top >> PAGE_SHIFT);
+	page_alloc_ops_enable();
+
+	return EFI_SUCCESS;
+}
+
+efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
+{
+	efi_status_t status;
+
+	uintptr_t text = (uintptr_t)&_text;
+	uintptr_t etext = (uintptr_t)&_etext;
+	uintptr_t data = (uintptr_t)&_data;
+	uintptr_t edata = (uintptr_t)&_edata;
+
+	exceptions_init();
+	printf("Current SP=%lx\n", current_stack_pointer);
+	printf("Text address: %" PRIxPTR "-%" PRIxPTR "\n", text, etext);
+	printf("Data address: %" PRIxPTR "-%" PRIxPTR "\n", data, edata);
+	status = setup_memory_allocator(efi_bootinfo);
+	if (status != EFI_SUCCESS) {
+		printf("Failed to set up memory allocator: ");
+		switch (status) {
+		case EFI_OUT_OF_RESOURCES:
+			printf("No free memory region\n");
+			break;
+		default:
+			printf("Unknown error\n");
+			break;
+		}
+		return status;
+	}
+
+	asm_mmu_disable();
+
+	status = setup_rsdp(efi_bootinfo);
+	if (status != EFI_SUCCESS) {
+		printf("Cannot find RSDP in EFI system table\n");
+		return status;
+	}
+
+	psci_set_conduit();
+	cpu_init();
+	/* cpu_init must be called before thread_info_init */
+	thread_info_init(current_thread_info(), 0);
+	/* mem_init must be called before io_init */
+	io_init();
+
+	timer_save_state();
+	if (initrd) {
+		/* environ is currently the only file in the initrd */
+		char *env = malloc(initrd_size);
+		memcpy(env, initrd, initrd_size);
+		setup_env(env, initrd_size);
+	}
+
+	printf("Current SP=%lx\n", current_stack_pointer);
+	if (!(auxinfo.flags & AUXINFO_MMU_OFF))
+		setup_vm();
+	printf("setup done\n");
+	return EFI_SUCCESS;
+}
+
+#endif

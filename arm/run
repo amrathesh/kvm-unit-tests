@@ -80,9 +80,15 @@ if $qemu $M -device '?' 2>&1 | grep -q pci-testdev; then
 	pci_testdev="-device pci-testdev"
 fi
 
-A+=",accel=$ACCEL"
-command="$qemu -nodefaults $A -cpu $PROCESSOR $chr_testdev $pci_testdev"
-command+=" -display none -serial stdio -kernel"
-command="$(migration_cmd) $(timeout_cmd) $command"
+[ "$EFI_RUN" ] && mon='mon:'
 
-run_qemu $command "$@"
+M+=",accel=$ACCEL"
+command="$qemu -nodefaults $M -cpu $PROCESSOR $chr_testdev $pci_testdev"
+command+=" -display none -serial ${mon}stdio"
+
+if [ "EFI_RUN" ]; then
+	$command "$@"
+else
+	command="$(migration_cmd) $(timeout_cmd) $command -kernel"
+	run_qemu $command "$@"
+fi

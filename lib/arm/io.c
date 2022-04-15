@@ -17,6 +17,7 @@
 #include <asm/io.h>
 
 #include "io.h"
+#include "acpi.h"
 
 static struct spinlock uart_lock;
 /*
@@ -34,6 +35,14 @@ static volatile u8 *uart0_base = UART_EARLY_BASE;
 
 static void uart0_init(void)
 {
+#ifdef CONFIG_EFI
+	struct spcr_descriptor *spcr = find_acpi_table_addr(SPCR_SIGNATURE);
+	assert_msg(spcr, "Unable to find ACPI SPCR");
+	printf("Found UART @ %#lx (%d)\n", spcr->serial_port.address,
+	       spcr->serial_port.bit_width);
+	uart0_base = ioremap(spcr->serial_port.address, spcr->serial_port.bit_width);
+	printf("IO remap done!\n");
+#else
 	/*
 	 * kvm-unit-tests uses the uart only for output. Both uart models have
 	 * the TX register at offset 0 from the base address, so there is no
@@ -66,9 +75,8 @@ static void uart0_init(void)
 		ret = dt_pbus_translate_node(ret, 0, &base);
 		assert(ret == 0);
 	}
-
 	uart0_base = ioremap(base.addr, base.size);
-
+#endif
 	if (uart0_base != UART_EARLY_BASE) {
 		printf("WARNING: early print support may not work. "
 		       "Found uart at %p, but early base is %p.\n",
@@ -84,7 +92,7 @@ void io_init(void)
 
 int putchar(int c)
 {
-	if (target_efi() && c == '\n') {
+	if (c == '\n') {
 		while (readb(uart0_base + UARTFR) & UARTFR_BUSY)
 			;
 		writeb('\r', uart0_base);
@@ -140,15 +148,8 @@ int __getchar(void)
  */
 extern void halt(int code);
 
-extern void efi_exit(int type, int code);
-
 void exit(int code)
 {
-	if (target_efi()) {
-		printf("\nEXIT: STATUS=%d\n", ((code) << 1) | 1);
-		efi_exit(1 /* warm reset */, code);
-	}
-
 	chr_testdev_exit(code);
 	psci_system_off();
 	halt(code);

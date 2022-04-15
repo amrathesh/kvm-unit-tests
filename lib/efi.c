@@ -25,6 +25,29 @@ static void efi_free_pool(void *ptr)
 	efi_bs_call(free_pool, ptr);
 }
 
+
+
+efi_status_t efi_get_args()
+{
+	efi_status_t status;
+	EFI_SHELL_INTERFACE *shell;
+	EFI_GUID gEfiShellInterfaceGuid = EFI_SHELL_INTERFACE_GUID;
+
+	status = uefi_call_wrapper(BS->OpenProtocol, 6,
+				   image, &gEfiShellInterfaceGuid,
+				   (VOID **)&shell, image, NULL,
+				   EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	if (EFI_ERROR(status))
+		return status;
+
+	__argc = shell->Argc;
+	__argv = shell->Argv;
+
+	status = uefi_call_wrapper(BS->CloseProtocol, 4, image,
+				   &gEfiShellInterfaceGuid, image, NULL);
+	return status;
+}
+
 efi_status_t efi_get_memory_map(struct efi_boot_memmap *map)
 {
 	efi_memory_desc_t *m = NULL;
@@ -87,7 +110,10 @@ efi_status_t efi_get_system_config_table(efi_guid_t table_guid, void **table)
 
 static void efi_exit(efi_status_t code)
 {
+#ifndef __aarch64__
 	exit(code);
+#endif
+	printf("\nEXIT: STATUS=%ld\n", ((code) << 1) | 1);
 
 	/*
 	 * Fallback to UEFI reset_system() service, in case testdev is
@@ -116,6 +142,8 @@ efi_status_t efi_main(efi_handle_t handle, efi_system_table_t *sys_tab)
 	efi_bootinfo.mem_map.desc_ver = &desc_ver;
 	efi_bootinfo.mem_map.key_ptr = &key;
 	efi_bootinfo.mem_map.buff_size = &buff_size;
+
+	efi_setup_argv(handle);
 
 	/* Get EFI memory map */
 	status = efi_get_memory_map(&efi_bootinfo.mem_map);
