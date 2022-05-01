@@ -9,6 +9,7 @@
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
 #include <libcflat.h>
+#include <acpi.h>
 #include <devicetree.h>
 #include <chr-testdev.h>
 #include <config.h>
@@ -54,7 +55,7 @@ static void uart_unmap_early_base(void)
 	}
 }
 
-static void uart0_init(void)
+static void uart0_init_fdt(void)
 {
 	/*
 	 * kvm-unit-tests uses the uart only for output. Both uart models have
@@ -90,6 +91,24 @@ static void uart0_init(void)
 	}
 
 	uart0_base = ioremap(base.addr, base.size);
+}
+
+static void uart0_init_acpi(void)
+{
+	struct spcr_descriptor *spcr = find_acpi_table_addr(SPCR_SIGNATURE);
+
+	assert_msg(spcr, "Unable to find ACPI SPCR");
+	uart0_base = ioremap(spcr->serial_port.address, spcr->serial_port.bit_width);
+}
+
+void io_init(void)
+{
+	if (dt_available()) {
+		uart0_init_fdt();
+		chr_testdev_init();
+	} else {
+		uart0_init_acpi();
+	}
 
 	if (uart0_base != UART_EARLY_BASE) {
 		printf("WARNING: early print support may not work. "
@@ -102,12 +121,6 @@ static void uart0_init(void)
 void __iomem *uart_early_base(void)
 {
 	return UART_EARLY_BASE;
-}
-
-void io_init(void)
-{
-	uart0_init();
-	chr_testdev_init();
 }
 
 void puts(const char *s)
