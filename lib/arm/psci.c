@@ -80,9 +80,11 @@ static void psci_set_conduit_fdt(void)
 static void psci_set_conduit_acpi(void)
 {
 	struct acpi_table_fadt *fadt = find_acpi_table_addr(FACP_SIGNATURE);
+
 	assert_msg(fadt, "Unable to find ACPI FADT");
 	assert_msg(fadt->arm_boot_flags & ACPI_FADT_PSCI_COMPLIANT,
-		   "PSCI is not supported in this platfrom");
+		   "PSCI is not supported in this platform");
+
 	if (fadt->arm_boot_flags & ACPI_FADT_PSCI_USE_HVC)
 		psci_invoke = psci_invoke_hvc;
 	else

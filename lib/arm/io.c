@@ -8,6 +8,7 @@
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
+#include <acpi.h>
 #include <libcflat.h>
 #include <devicetree.h>
 #include <chr-testdev.h>
@@ -29,7 +30,7 @@ static struct spinlock uart_lock;
 #define UART_EARLY_BASE (u8 *)(unsigned long)CONFIG_UART_EARLY_BASE
 static volatile u8 *uart0_base = UART_EARLY_BASE;
 
-static void uart0_init(void)
+static void uart0_init_fdt(void)
 {
 	/*
 	 * kvm-unit-tests uses the uart only for output. Both uart models have
@@ -73,9 +74,25 @@ static void uart0_init(void)
 	}
 }
 
+static void uart0_init_acpi(void)
+{
+	struct spcr_descriptor *spcr = find_acpi_table_addr(SPCR_SIGNATURE);
+	assert_msg(spcr, "Unable to find ACPI SPCR");
+	uart0_base = ioremap(spcr->serial_port.address, spcr->serial_port.bit_width);
+
+	if (uart0_base != UART_EARLY_BASE) {
+		printf("WARNING: early print support may not work. "
+		       "Found uart at %p, but early base is %p.\n",
+			uart0_base, UART_EARLY_BASE);
+	}
+}
+
 void io_init(void)
 {
-	uart0_init();
+	if (dt_available())
+		uart0_init_fdt();
+	else
+		uart0_init_acpi();
 	chr_testdev_init();
 }
 
