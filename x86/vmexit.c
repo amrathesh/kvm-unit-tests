@@ -1,9 +1,9 @@
+#include "acpi.h"
 #include "libcflat.h"
 #include "smp.h"
 #include "pci.h"
 #include "x86/vm.h"
 #include "x86/desc.h"
-#include "x86/acpi.h"
 #include "x86/apic.h"
 #include "x86/isr.h"
 
