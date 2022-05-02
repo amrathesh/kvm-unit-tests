@@ -3,6 +3,12 @@
 
 #include "libcflat.h"
 
+/*
+ * All tables and structures must be byte-packed to match the ACPI
+ * specification, since the tables are provided by the system BIOS
+ */
+#pragma pack(1)
+
 #define ACPI_SIGNATURE(c1, c2, c3, c4)				\
 	((c1) | ((c2) << 8) | ((c3) << 16) | ((c4) << 24))
 
@@ -105,6 +111,8 @@ struct facs_descriptor_rev1
 	u32 reserved1	: 31;		/* Must be 0 */
 	u8  reserved3 [40];		/* Reserved - must be zero */
 };
+
+#pragma pack(0)
 
 void set_efi_rsdp(struct rsdp_descriptor *rsdp);
 void* find_acpi_table_addr(u32 sig);
