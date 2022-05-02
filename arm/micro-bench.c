@@ -43,7 +43,7 @@ static void gic_irq_handler(struct pt_regs *regs)
 	irq_received = true;
 	gic_write_eoir(irqstat);
 
-	if (irqstat == PPI(TIMER_VTIMER_IRQ)) {
+	if (irqstat == TIMER_VTIMER_IRQ) {
 		write_sysreg((ARCH_TIMER_CTL_IMASK | ARCH_TIMER_CTL_ENABLE),
 			     cntv_ctl_el0);
 		isb();
@@ -229,7 +229,7 @@ static bool timer_prep(void)
 		assert_msg(0, "Unreachable");
 	}
 
-	writel(1 << PPI(TIMER_VTIMER_IRQ), gic_isenabler);
+	writel(1 << TIMER_VTIMER_IRQ, gic_isenabler);
 	write_sysreg(ARCH_TIMER_CTL_IMASK | ARCH_TIMER_CTL_ENABLE, cntv_ctl_el0);
 	isb();
 
