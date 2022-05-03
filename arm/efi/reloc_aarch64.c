@@ -34,8 +34,7 @@
     SUCH DAMAGE.
 */
 
-#include "efi.h"
-#include <elf.h>
+#include <efi.h>
 
 efi_status_t _relocate(long ldbase, Elf64_Dyn *dyn, efi_handle_t image,
 		       efi_system_table_t *sys_tab)
