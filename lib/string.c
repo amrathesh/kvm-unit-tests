@@ -163,7 +163,7 @@ void *memchr(const void *s, int c, size_t n)
     return NULL;
 }
 
-static int isspace(int c)
+int isspace(int c)
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f';
 }

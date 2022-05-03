@@ -7,6 +7,7 @@
 #ifndef _STDLIB_H_
 #define _STDLIB_H_
 
+int isspace(int c);
 long int strtol(const char *nptr, char **endptr, int base);
 unsigned long int strtoul(const char *nptr, char **endptr, int base);
 long long int strtoll(const char *nptr, char **endptr, int base);
