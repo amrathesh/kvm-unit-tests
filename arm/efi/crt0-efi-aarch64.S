@@ -111,10 +111,19 @@ section_table:
 
 	.align		12
 _start:
-	stp		x29, x30, [sp, #-32]!
+	stp		x29, x30, [sp, #-16]!
+
+	// Align sp; this is necessary due to way we store cpu0's thread_info
 	mov		x29, sp
+	and		x29, x29, #THREAD_MASK
+	mov		x30, sp
+	mov		sp, x29
+	str		x30, [sp, #-32]!
+
+	mov             x29, sp
 
 	stp		x0, x1, [sp, #16]
+
 	mov		x2, x0
 	mov		x3, x1
 	adr		x0, ImageBase
@@ -126,5 +135,9 @@ _start:
 	ldp		x0, x1, [sp, #16]
 	bl		efi_main
 
-0:	ldp		x29, x30, [sp], #32
+	// Restore sp
+	ldr		x30, [sp]
+	mov             sp, x30
+
+0:	ldp		x29, x30, [sp], #16
 	ret
