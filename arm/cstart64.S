@@ -22,6 +22,10 @@
 9997:
 .endm
 
+#ifdef CONFIG_EFI
+#include "efi/crt0-efi-aarch64.S"
+#else
+
 .section .init
 
 /*
@@ -128,6 +132,8 @@ start:
 	bl	main
 	bl	exit
 	b	halt
+
+#endif
 
 .text
 
