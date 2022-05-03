@@ -5,6 +5,7 @@
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
+#include <efi.h>
 #include <libcflat.h>
 #include <asm/page.h>
 #include <asm/pgtable-hwdef.h>
@@ -37,5 +38,6 @@ extern unsigned int mem_region_get_flags(phys_addr_t paddr);
 #define SMP_CACHE_BYTES		L1_CACHE_BYTES
 
 void setup(const void *fdt, phys_addr_t freemem_start);
+efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo);
 
 #endif /* _ASMARM_SETUP_H_ */
