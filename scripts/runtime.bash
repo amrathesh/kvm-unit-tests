@@ -131,14 +131,12 @@ function run()
     fi
 
     last_line=$(premature_failure > >(tail -1)) && {
-        skip=true
-        if [ "${CONFIG_EFI}" == "y" ] && [[ "${last_line}" =~ "enabling apic" ]]; then
-            skip=false
-        fi
-        if [ ${skip} == true ]; then
-            print_result "SKIP" $testname "" "$last_line"
-            return 77
-        fi
+        if [ "${CONFIG_EFI}" == "y" ] && [ "${ARCH}" = x86_64 ]; then
+		if ! [[ "${last_line}" =~ "enabling apic" ]]; then
+			print_result "SKIP" $testname "" "$last_line"
+			return 77
+		fi
+	fi
     }
 
     cmdline=$(get_cmdline $kernel)
