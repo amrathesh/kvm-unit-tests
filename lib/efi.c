@@ -8,6 +8,7 @@
  */
 
 #include "efi.h"
+#include <argv.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <libcflat.h>
@@ -96,22 +97,6 @@ static void efi_exit(efi_status_t code)
 	 * missing and exit() does not properly exit.
 	 */
 	efi_rs_call(reset_system, EFI_RESET_SHUTDOWN, code, 0, NULL);
-}
-
-static void efi_cmdline_to_argv(char *cmdline_ptr)
-{
-	char *c = cmdline_ptr;
-	bool narg = true;
-	while (*c) {
-		if (isspace(*c)) {
-			*c = '\0';
-			narg = true;
-		} else if (narg) {
-			__argv[__argc++] = c;
-			narg = false;
-		}
-		c++;
-	}
 }
 
 static char *efi_convert_cmdline(efi_loaded_image_t *image, int *cmd_line_len)
@@ -231,7 +216,7 @@ efi_status_t efi_main(efi_handle_t handle, efi_system_table_t *sys_tab)
 		status = EFI_OUT_OF_RESOURCES;
 		goto efi_main_error;
 	}
-	efi_cmdline_to_argv(cmdline_ptr);
+	setup_args(cmdline_ptr);
 
 	/* Set up efi_bootinfo */
 	efi_bootinfo.mem_map.map = &map;
