@@ -5,6 +5,7 @@
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
+#include <acpi.h>
 #include "libcflat.h"
 #include "devicetree.h"
 #include "alloc.h"
@@ -63,11 +64,6 @@ static struct pci_host_bridge *pci_dt_probe(void)
 	u32 nac, nsc, nac_root, nsc_root;
 	int nr_range_cells, nr_addr_spaces;
 	int ret, node, len, i;
-
-	if (!dt_available()) {
-		printf("No device tree found\n");
-		return NULL;
-	}
 
 	dt_bus_init_defaults(&dt_bus);
 	dt_device_init(&dt_dev, &dt_bus, NULL);
@@ -165,6 +161,59 @@ static struct pci_host_bridge *pci_dt_probe(void)
 	return host;
 }
 
+static struct pci_host_bridge *pci_acpi_probe(void)
+{
+	struct pci_host_bridge *host;
+	struct pci_addr_space *as;
+	//u32 bus, bus_max;
+	int i, nr_addr_spaces;
+	struct acpi_table_mcfg *mcfg;
+	struct acpi_mcfg_allocation *mptr;
+
+	mcfg = find_acpi_table_addr(MCFG_SIGNATURE);
+	if (mcfg->length < sizeof(struct acpi_table_mcfg))
+                return NULL;
+
+	nr_addr_spaces = (mcfg->length - sizeof(struct acpi_table_mcfg)) /
+		sizeof(struct acpi_mcfg_allocation);
+        mptr = (struct acpi_mcfg_allocation *) &mcfg[1];
+
+	host = malloc(sizeof(*host) +
+		      sizeof(host->addr_space[0]) * nr_addr_spaces);
+	assert(host != NULL);
+
+	//host->start		= ioremap(base.addr, base.size);
+	//host->size		= base.size;
+	host->bus		= 0x00;
+	host->bus_max		= 0xff;
+	host->nr_addr_spaces	= nr_addr_spaces;
+
+	as = &host->addr_space[0];
+
+	for (i = 0; i < nr_addr_spaces; mptr++, i++) {
+		/*
+		 * The PCI binding encodes the PCI address with three
+		 * cells as follows:
+		 *
+		 * phys.hi  cell: npt000ss bbbbbbbb dddddfff rrrrrrrr
+		 * phys.mid cell: hhhhhhhh hhhhhhhh hhhhhhhh hhhhhhhh
+		 * phys.lo  cell: llllllll llllllll llllllll llllllll
+		 *
+		 * PCI device bus address and flags are encoded into phys.high
+		 * PCI 64 bit address is encoded into phys.mid and phys.low
+		 */
+		as->type = mptr->pci_segment;
+		as->pci_start = mptr->address;
+		as->start = mptr->start_bus_number;
+		as->size = mptr->end_bus_number - mptr->start_bus_number;
+		printf("PCI type: %d, pci_start %lx, %lx-%lx\n", as->type, as->pci_start, as->start, as->size);
+		as++;
+	}
+
+	return host;
+
+}
+
 static bool pci_alloc_resource(struct pci_dev *dev, int bar_num, u64 *addr)
 {
 	struct pci_host_bridge *host = pci_host_bridge;
@@ -217,7 +266,11 @@ bool pci_probe(void)
 	int i;
 
 	assert(!pci_host_bridge);
-	pci_host_bridge = pci_dt_probe();
+	if (dt_available())
+		pci_host_bridge = pci_dt_probe();
+	else {
+		pci_host_bridge = pci_acpi_probe();
+	}
 	if (!pci_host_bridge)
 		return false;
 

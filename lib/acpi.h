@@ -19,6 +19,7 @@
 #define MADT_SIGNATURE ACPI_SIGNATURE('A','P','I','C')
 #define SPCR_SIGNATURE ACPI_SIGNATURE('S','P','C','R')
 #define GTDT_SIGNATURE ACPI_SIGNATURE('G','T','D','T')
+#define MCFG_SIGNATURE ACPI_SIGNATURE('M','C','F','G')
 
 
 #define ACPI_SIGNATURE_8BYTE(c1, c2, c3, c4, c5, c6, c7, c8) \
@@ -254,6 +255,30 @@ enum acpi_madt_type {
 
 /* MADT Local APIC flags */
 #define ACPI_MADT_ENABLED           (1) /* 00: Processor is usable if set */
+
+/*******************************************************************************
+ *
+ * MCFG - PCI Memory Mapped Configuration table and subtable
+ *        Version 1
+ *
+ * Conforms to "PCI Firmware Specification", Revision 3.0, June 20, 2005
+ *
+******************************************************************************/
+
+struct acpi_table_mcfg {
+    ACPI_TABLE_HEADER_DEF     /* ACPI common table header */
+    u8 reserved[8];
+} __attribute__((packed));
+
+/* Subtable */
+
+struct acpi_mcfg_allocation {
+    u64 address;            /* Base address, processor-relative */
+    u16 pci_segment;        /* PCI segment group number */
+    u8 start_bus_number;    /* Starting PCI Bus number */
+    u8 end_bus_number;      /* Final PCI Bus number */
+    u32 reserved;
+} __attribute__((packed));
 
 struct spcr_descriptor {
     ACPI_TABLE_HEADER_DEF   /* ACPI common table header */
