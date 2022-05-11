@@ -284,6 +284,7 @@ exceptions_init:
  * Adapted from arch/arm64/kernel/entry.S
  */
 .macro vector_stub, name, vec
+.weak \name
 \name:
 	stp	 x0,  x1, [sp, #-S_FRAME_SIZE]!
 	stp	 x2,  x3, [sp,  #16]
@@ -377,6 +378,7 @@ vector_stub	el0_error_32, 15
 .endm
 
 .align 11
+.globl vector_table
 vector_table:
 	ventry	el1t_sync			// Synchronous EL1t
 	ventry	el1t_irq			// IRQ EL1t
