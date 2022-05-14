@@ -71,7 +71,12 @@ void *find_acpi_table_addr(u32 sig)
 	if (sig == RSDT_SIGNATURE)
 		return rsdt;
 
-	if (rsdp->revision > 1)
+	/*
+	 * When the system implements APCI 2.0 and above and XSDT is
+	 * valid we have use XSDT to find other ACPI tables,
+	 * otherwise, we use RSDT.
+	 */
+	if (rsdp->revision == 2)
 		xsdt = (void *)(ulong)rsdp->xsdt_physical_address;
 	if (!xsdt || xsdt->signature != XSDT_SIGNATURE)
 		xsdt = NULL;
@@ -79,8 +84,6 @@ void *find_acpi_table_addr(u32 sig)
 	if (sig == XSDT_SIGNATURE)
 		return xsdt;
 
-	/* When XSDT is valid, ACPI requires that we use it find other
-	   tables, otherwise we revert to using RSDT. */
 	if (xsdt) {
 		end = (void *)(ulong)xsdt + xsdt->length;
 		for (i = 0; (void *)&xsdt->table_offset_entry[i] < end; i++) {
