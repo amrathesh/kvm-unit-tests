@@ -10,6 +10,7 @@
 #include <acpi.h>
 #include <devicetree.h>
 #include <libfdt/libfdt.h>
+#include <asm/gic.h>
 #include <asm/timer.h>
 
 struct timer_state __timer_state;
@@ -44,10 +45,10 @@ static void timer_save_state_fdt(void)
 
 	data = (u32 *)prop->data;
 	assert(fdt32_to_cpu(data[3]) == 1 /* PPI */);
-	__timer_state.ptimer.irq = fdt32_to_cpu(data[4]);
+	__timer_state.ptimer.irq = PPI(fdt32_to_cpu(data[4]));
 	__timer_state.ptimer.irq_flags = fdt32_to_cpu(data[5]);
 	assert(fdt32_to_cpu(data[6]) == 1 /* PPI */);
-	__timer_state.vtimer.irq = fdt32_to_cpu(data[7]);
+	__timer_state.vtimer.irq = PPI(fdt32_to_cpu(data[7]));
 	__timer_state.vtimer.irq_flags = fdt32_to_cpu(data[8]);
 }
 
@@ -55,7 +56,13 @@ static void timer_save_state_acpi(void)
 {
 	struct acpi_table_gtdt *gtdt = find_acpi_table_addr(GTDT_SIGNATURE);
 
-	assert_msg(gtdt, "Unable to find ACPI GTDT");
+	if (!gtdt) {
+		printf("Cannot find find ACPI GTDT");
+		__timer_state.ptimer.irq = -1;
+		__timer_state.vtimer.irq = -1;
+		return;
+	}
+
 	__timer_state.ptimer.irq = gtdt->non_secure_el1_interrupt;
 	__timer_state.ptimer.irq_flags = gtdt->non_secure_el1_flags;
 
