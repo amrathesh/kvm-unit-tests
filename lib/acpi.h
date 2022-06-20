@@ -3,7 +3,7 @@
 
 #include "libcflat.h"
 
-#define ACPI_SIGNATURE(c1, c2, c3, c4)				\
+#define ACPI_SIGNATURE(c1, c2, c3, c4) \
 	((c1) | ((c2) << 8) | ((c3) << 16) | ((c4) << 24))
 
 #define RSDP_SIGNATURE ACPI_SIGNATURE('R','S','D','P')
@@ -11,8 +11,8 @@
 #define FACP_SIGNATURE ACPI_SIGNATURE('F','A','C','P')
 #define FACS_SIGNATURE ACPI_SIGNATURE('F','A','C','S')
 
-#define ACPI_SIGNATURE_8BYTE(c1, c2, c3, c4, c5, c6, c7, c8)	\
-	((uint64_t)(ACPI_SIGNATURE(c1, c2, c3, c4))) |		\
+#define ACPI_SIGNATURE_8BYTE(c1, c2, c3, c4, c5, c6, c7, c8) \
+	((uint64_t)(ACPI_SIGNATURE(c1, c2, c3, c4))) |       \
 	((uint64_t)(ACPI_SIGNATURE(c5, c6, c7, c8)) << 32)
 
 #define RSDP_SIGNATURE_8BYTE (ACPI_SIGNATURE_8BYTE('R', 'S', 'D', ' ', 'P', 'T', 'R', ' '))
@@ -42,12 +42,12 @@ struct rsdp_descriptor {	/* Root System Descriptor Pointer */
 
 struct acpi_table {
 	ACPI_TABLE_HEADER_DEF
-	char data[0];
+	char data[];
 };
 
 struct rsdt_descriptor_rev1 {
 	ACPI_TABLE_HEADER_DEF
-	u32 table_offset_entry[1];
+	u32 table_offset_entry[];
 };
 
 struct fadt_descriptor_rev1 {
