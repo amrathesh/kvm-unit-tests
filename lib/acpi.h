@@ -301,6 +301,6 @@ struct acpi_table_gtdt {
 
 void set_efi_rsdp(struct rsdp_descriptor *rsdp);
 void* find_acpi_table_addr(u32 sig);
-void acpi_table_parse_madt(enum acpi_madt_type mtype, acpi_table_handler handler);
+int acpi_table_parse_madt(enum acpi_madt_type mtype, acpi_table_handler handler);
 
 #endif

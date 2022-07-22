@@ -225,20 +225,21 @@ static int gicv3_acpi_parse_madt_its(struct acpi_subtable_header *header)
 
 static int gic_init_acpi(void)
 {
-	acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
-			      gic_acpi_version);
+	int count;
+
+	acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR, gic_acpi_version);
 	if (gic_version() == 2) {
 		acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_INTERRUPT,
-				      gicv2_acpi_parse_madt_cpu);
+				     gicv2_acpi_parse_madt_cpu);
 		acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
 				      gicv2_acpi_parse_madt_dist);
 	} else if (gic_version() == 3) {
 		acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
 				      gicv3_acpi_parse_madt_dist);
-		acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR,
-				      gicv3_acpi_parse_madt_redist);
-		if (!gicv3_data.redist_base)
-			acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR,
+		count = acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR,
+					      gicv3_acpi_parse_madt_redist);
+		if (!count)
+			acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_INTERRUPT,
 					      gicv3_acpi_parse_madt_gicc);
 		acpi_table_parse_madt(ACPI_MADT_TYPE_GENERIC_TRANSLATOR,
 				      gicv3_acpi_parse_madt_its);
