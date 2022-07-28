@@ -94,6 +94,9 @@ CFLAGS += $(wmissing_parameter_type)
 CFLAGS += $(wold_style_declaration)
 CFLAGS += -Woverride-init -Wmissing-prototypes -Wstrict-prototypes
 
+AFLAGS  = $(CFLAGS)
+AFLAGS += -D__ASSEMBLY__
+
 autodepend-flags = -MMD -MF $(dir $*).$(notdir $*).d
 
 LDFLAGS += $(CFLAGS)
@@ -117,7 +120,7 @@ directories:
 	@mkdir -p $(OBJDIRS)
 
 %.o: %.S
-	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
+	$(CC) $(AFLAGS) -c -nostdlib -o $@ $<
 
 -include */.*.d */*/.*.d
 
