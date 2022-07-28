@@ -25,17 +25,16 @@
 
 /*
  * Macro to perform a data cache maintenance for the interval
- * [addr, addr + size).
+ * [addr, end).
  *
  * 	op:		operation to execute
  * 	domain		domain used in the dsb instruction
  * 	addr:		starting virtual address of the region
- * 	size:		size of the region
- * 	Corrupts:	addr, size, tmp1, tmp2
+ * 	end:		the end of the region (non-inclusive)
+ * 	Corrupts:	addr, tmp1, tmp2
  */
-	.macro dcache_by_line_op op, domain, addr, size, tmp1, tmp2
+	.macro dcache_by_line_op op, domain, addr, end, tmp1, tmp2
 	dcache_line_size \tmp1, \tmp2
-	add	\size, \addr, \size
 	sub	\tmp2, \tmp1, #1
 	bic	\addr, \addr, \tmp2
 9998:
@@ -45,7 +44,7 @@
 	.err
 	.endif
 	add	\addr, \addr, \tmp1
-	cmp	\addr, \size
+	cmp	\addr, \end
 	blo	9998b
 	dsb	\domain
 	.endm
