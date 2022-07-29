@@ -232,7 +232,6 @@ void install_vector_handler(enum vector v, vector_fn fn)
 
 static void __thread_info_init(struct thread_info *ti, unsigned int flags)
 {
-	memset(ti, 0, sizeof(struct thread_info));
 	ti->cpu = mpidr_to_cpu(get_mpidr());
 	ti->flags = flags;
 }

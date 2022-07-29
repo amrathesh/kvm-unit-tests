@@ -156,6 +156,9 @@ secondary_entry:
 	/* set the stack */
 	adrp	x0, secondary_data
 	ldr	x0, [x0, :lo12:secondary_data]
+	and	x1, x0, #THREAD_MASK
+	add	x2, x1, #THREAD_SIZE
+	zero_range x1, x2
 	mov	sp, x0
 
 	/* finish init in C code */

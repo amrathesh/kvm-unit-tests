@@ -117,7 +117,6 @@ void do_handle_exception(enum vector v, struct pt_regs *regs)
 
 void thread_info_init(struct thread_info *ti, unsigned int flags)
 {
-	memset(ti, 0, sizeof(struct thread_info));
 	ti->cpu = mpidr_to_cpu(get_mpidr());
 	ti->flags = flags;
 }

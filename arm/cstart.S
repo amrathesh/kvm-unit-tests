@@ -151,7 +151,13 @@ secondary_entry:
 	 */
 	ldr	r1, =secondary_data
 	ldr	r0, [r1]
+	mov	r2, r0
+	lsr	r2, #THREAD_SHIFT
+	lsl	r2, #THREAD_SHIFT
+	add	r3, r2, #THREAD_SIZE
+	zero_range r2, r3, r4, r5
 	mov	sp, r0
+
 	bl	exceptions_init
 	bl	enable_vfp
 
