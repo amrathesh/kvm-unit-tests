@@ -15,6 +15,7 @@
 #include <devicetree.h>
 #include <alloc.h>
 #include <alloc_phys.h>
+#include <alloc_page.h>
 #include <argv.h>
 #include <asm/setup.h>
 #include <asm/page.h>
@@ -111,6 +112,7 @@ static void mem_init(phys_addr_t freemem_start)
 	struct mem_region primary, mem = {
 		.start = (phys_addr_t)-1,
 	};
+	phys_addr_t base, top;
 	int nr_regs, i;
 
 	nr_regs = dt_get_memory_params(regs, NR_MEM_REGIONS);
@@ -146,9 +148,10 @@ static void mem_init(phys_addr_t freemem_start)
 	__physical_start = mem.start;	/* PHYSICAL_START */
 	__physical_end = mem.end;	/* PHYSICAL_END */
 
-	phys_alloc_init(freemem_start, primary.end - freemem_start);
-	phys_alloc_set_minimum_alignment(__icache_bytes > __dcache_bytes
-					 ? __icache_bytes : __dcache_bytes);
+	base = PAGE_ALIGN(freemem_start) >> PAGE_SHIFT;
+	top = primary.end >> PAGE_SHIFT;
+	page_alloc_init_area(0, base, top);
+	page_alloc_ops_enable();
 }
 
 void setup(const void *fdt)
