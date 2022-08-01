@@ -15,8 +15,6 @@
  */
 #include "libcflat.h"
 
-#define DEFAULT_MINIMUM_ALIGNMENT 32
-
 /*
  * phys_alloc_init creates the initial free memory region of size @size
  * at @base. The minimum alignment is set to DEFAULT_MINIMUM_ALIGNMENT.

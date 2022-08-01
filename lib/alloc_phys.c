@@ -13,8 +13,6 @@
 
 #define PHYS_ALLOC_NR_REGIONS	256
 
-#define DEFAULT_MINIMUM_ALIGNMENT	32
-
 struct phys_alloc_region {
 	phys_addr_t base;
 	phys_addr_t size;
@@ -26,12 +24,13 @@ static int nr_regions;
 static struct spinlock lock;
 static phys_addr_t base, top;
 
+#define DEFAULT_MINIMUM_ALIGNMENT	32
+static size_t align_min = DEFAULT_MINIMUM_ALIGNMENT;
+
 static void *early_memalign(size_t alignment, size_t size);
 static struct alloc_ops early_alloc_ops = {
 	.memalign = early_memalign,
 };
-static size_t align_min;
-
 struct alloc_ops *alloc_ops = &early_alloc_ops;
 
 void phys_alloc_show(void)
