@@ -29,8 +29,9 @@ extern void phys_alloc_set_minimum_alignment(phys_addr_t align);
 
 /*
  * phys_alloc_show outputs all currently allocated regions with the
- * following format
- *   <start_addr>-<end_addr> [<USED|FREE>]
+ * following format, where <end_addr> is non-inclusive:
+ *
+ * <start_addr>-<end_addr> [<USED|FREE>]
  */
 extern void phys_alloc_show(void);
 
