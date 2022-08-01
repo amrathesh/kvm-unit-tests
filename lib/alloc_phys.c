@@ -27,9 +27,9 @@ static phys_addr_t base, top;
 #define DEFAULT_MINIMUM_ALIGNMENT	32
 static size_t align_min = DEFAULT_MINIMUM_ALIGNMENT;
 
-static void *early_memalign(size_t alignment, size_t size);
+static void *memalign_early(size_t alignment, size_t sz);
 static struct alloc_ops early_alloc_ops = {
-	.memalign = early_memalign,
+	.memalign = memalign_early,
 };
 struct alloc_ops *alloc_ops = &early_alloc_ops;
 
@@ -66,21 +66,24 @@ void phys_alloc_set_minimum_alignment(phys_addr_t align)
 	spin_unlock(&lock);
 }
 
-static phys_addr_t phys_alloc_aligned_safe(phys_addr_t size,
-					   phys_addr_t align, bool safe)
+static void *memalign_early(size_t alignment, size_t sz)
 {
 	static bool warned = false;
-	phys_addr_t addr, size_orig = size;
-	u64 top_safe;
+	phys_addr_t align = (phys_addr_t)alignment;
+	phys_addr_t size = (phys_addr_t)sz;
+	phys_addr_t size_orig = size;
+	phys_addr_t addr, top_safe;
+
+	assert(align && !(align & (align - 1)));
 
 	spin_lock(&lock);
 
 	top_safe = top;
 
-	if (safe && sizeof(long) == 4)
+	if (sizeof(long) == 4)
 		top_safe = MIN(top_safe, 1ULL << 32);
-
 	assert(base < top_safe);
+
 	if (align < align_min)
 		align = align_min;
 
@@ -92,10 +95,10 @@ static phys_addr_t phys_alloc_aligned_safe(phys_addr_t size,
 		       " (align=%#" PRIx64 "), "
 		       "need=%#" PRIx64 ", but free=%#" PRIx64 ". "
 		       "top=%#" PRIx64 ", top_safe=%#" PRIx64 "\n",
-		       (u64)size_orig, (u64)align, (u64)size, top_safe - base,
-		       (u64)top, top_safe);
+		       (u64)size_orig, (u64)align, (u64)size,
+		       (u64)(top_safe - base), (u64)top, (u64)top_safe);
 		spin_unlock(&lock);
-		return INVALID_PHYS_ADDR;
+		return NULL;
 	}
 
 	base += size;
@@ -112,7 +115,7 @@ static phys_addr_t phys_alloc_aligned_safe(phys_addr_t size,
 
 	spin_unlock(&lock);
 
-	return addr;
+	return phys_to_virt(addr);
 }
 
 void phys_alloc_get_unused(phys_addr_t *p_base, phys_addr_t *p_top)
@@ -127,17 +130,4 @@ void phys_alloc_get_unused(phys_addr_t *p_base, phys_addr_t *p_top)
 	++nr_regions;
 	base = top;
 	spin_unlock(&lock);
-}
-
-static void *early_memalign(size_t alignment, size_t size)
-{
-	phys_addr_t addr;
-
-	assert(alignment && !(alignment & (alignment - 1)));
-
-	addr = phys_alloc_aligned_safe(size, alignment, true);
-	if (addr == INVALID_PHYS_ADDR)
-		return NULL;
-
-	return phys_to_virt(addr);
 }
