@@ -21,7 +21,6 @@ struct phys_alloc_region {
 static struct phys_alloc_region regions[PHYS_ALLOC_NR_REGIONS];
 static int nr_regions;
 
-static struct spinlock lock;
 static phys_addr_t base, top;
 
 #define DEFAULT_MINIMUM_ALIGNMENT	32
@@ -37,7 +36,6 @@ void phys_alloc_show(void)
 {
 	int i;
 
-	spin_lock(&lock);
 	printf("phys_alloc minimum alignment: %#" PRIx64 "\n", (u64)align_min);
 	for (i = 0; i < nr_regions; ++i)
 		printf("%016" PRIx64 "-%016" PRIx64 " [%s]\n",
@@ -46,24 +44,19 @@ void phys_alloc_show(void)
 			"USED");
 	printf("%016" PRIx64 "-%016" PRIx64 " [%s]\n",
 		(u64)base, (u64)(top - 1), "FREE");
-	spin_unlock(&lock);
 }
 
 void phys_alloc_init(phys_addr_t base_addr, phys_addr_t size)
 {
-	spin_lock(&lock);
 	base = base_addr;
 	top = base + size;
 	nr_regions = 0;
-	spin_unlock(&lock);
 }
 
 void phys_alloc_set_minimum_alignment(phys_addr_t align)
 {
 	assert(align && !(align & (align - 1)));
-	spin_lock(&lock);
 	align_min = align;
-	spin_unlock(&lock);
 }
 
 static void *memalign_early(size_t alignment, size_t sz)
@@ -75,8 +68,6 @@ static void *memalign_early(size_t alignment, size_t sz)
 	phys_addr_t addr, top_safe;
 
 	assert(align && !(align & (align - 1)));
-
-	spin_lock(&lock);
 
 	top_safe = top;
 
@@ -97,7 +88,6 @@ static void *memalign_early(size_t alignment, size_t sz)
 		       "top=%#" PRIx64 ", top_safe=%#" PRIx64 "\n",
 		       (u64)size_orig, (u64)align, (u64)size,
 		       (u64)(top_safe - base), (u64)top, (u64)top_safe);
-		spin_unlock(&lock);
 		return NULL;
 	}
 
@@ -113,8 +103,6 @@ static void *memalign_early(size_t alignment, size_t sz)
 		warned = true;
 	}
 
-	spin_unlock(&lock);
-
 	return phys_to_virt(addr);
 }
 
@@ -124,10 +112,8 @@ void phys_alloc_get_unused(phys_addr_t *p_base, phys_addr_t *p_top)
 	*p_top = top;
 	if (base == top)
 		return;
-	spin_lock(&lock);
 	regions[nr_regions].base = base;
 	regions[nr_regions].size = top - base;
 	++nr_regions;
 	base = top;
-	spin_unlock(&lock);
 }
