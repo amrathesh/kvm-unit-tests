@@ -43,8 +43,8 @@
 #define pgd_free(pgd) free(pgd)
 static inline pgd_t *pgd_alloc(void)
 {
-	pgd_t *pgd = memalign(L1_CACHE_BYTES, PTRS_PER_PGD * sizeof(pgd_t));
-	memset(pgd, 0, PTRS_PER_PGD * sizeof(pgd_t));
+	assert(PTRS_PER_PGD * sizeof(pgd_t) <= PAGE_SIZE);
+	pgd_t *pgd = alloc_page();
 	return pgd;
 }
 

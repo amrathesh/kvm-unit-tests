@@ -169,7 +169,7 @@ void *setup_mmu(phys_addr_t phys_end, void *unused)
 #endif
 
 	if (!mmu_idmap)
-		mmu_idmap = alloc_page();
+		mmu_idmap = pgd_alloc();
 
 	for (r = mem_regions; r->end; ++r) {
 		if (r->flags & MR_F_IO) {
@@ -201,7 +201,7 @@ void __iomem *__ioremap(phys_addr_t phys_addr, size_t size)
 		pgtable = current_thread_info()->pgtable;
 	} else {
 		if (!mmu_idmap)
-			mmu_idmap = alloc_page();
+			mmu_idmap = pgd_alloc();
 		pgtable = mmu_idmap;
 	}
 
