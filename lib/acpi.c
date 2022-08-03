@@ -65,7 +65,7 @@ void *find_acpi_table_addr(u32 sig)
 		return rsdp;
 
 	rsdt = (void *)(ulong) rsdp->rsdt_physical_address;
-	if (!rsdt || rsdt->signature != RSDT_SIGNATURE)
+	if (rsdt && rsdt->signature != RSDT_SIGNATURE)
 		rsdt = NULL;
 
 	if (sig == RSDT_SIGNATURE)
@@ -77,15 +77,16 @@ void *find_acpi_table_addr(u32 sig)
 	 * otherwise, we use RSDT.
 	 */
 	if (rsdp->revision == 2)
-		xsdt = (void *)(ulong)rsdp->xsdt_physical_address;
-	if (!xsdt || xsdt->signature != XSDT_SIGNATURE)
+		xsdt = (void *)rsdp->xsdt_physical_address;
+
+	if (xsdt && xsdt->signature != XSDT_SIGNATURE)
 		xsdt = NULL;
 
 	if (sig == XSDT_SIGNATURE)
 		return xsdt;
 
 	if (xsdt) {
-		end = (void *)(ulong)xsdt + xsdt->length;
+		end = (void *)xsdt + xsdt->length;
 		for (i = 0; (void *)&xsdt->table_offset_entry[i] < end; i++) {
 			struct acpi_table *t = (void *)xsdt->table_offset_entry[i];
 
