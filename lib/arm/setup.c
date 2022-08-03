@@ -309,7 +309,7 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 	efi_memory_desc_t *buffer = *map->map;
 	efi_memory_desc_t *d = NULL;
 	phys_addr_t base, top;
-	struct mem_region *r;
+	struct mem_region r;
 	uintptr_t text = (uintptr_t)&_text, etext = __ALIGN((uintptr_t)&_etext, 4096);
 	uintptr_t data = (uintptr_t)&_data, edata = __ALIGN((uintptr_t)&_edata, 4096);
 
@@ -319,11 +319,12 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 	 * the memory allocator can work in the largest free
 	 * continuous memory region.
 	 */
-	for (i = 0, r = &mem_regions[0]; i < *(map->map_size); i += *(map->desc_size), ++r) {
+	for (i = 0; i < *(map->map_size); i += *(map->desc_size)) {
 		d = (efi_memory_desc_t *)(&((u8 *)buffer)[i]);
 
-		r->start = d->phys_addr;
-		r->end = d->phys_addr + d->num_pages * EFI_PAGE_SIZE;
+		r.start = d->phys_addr;
+		r.end = d->phys_addr + d->num_pages * EFI_PAGE_SIZE;
+		r.flags = 0;
 
 		switch (d->type) {
 		case EFI_RESERVED_TYPE:
@@ -336,26 +337,27 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 		case EFI_ACPI_RECLAIM_MEMORY:
 		case EFI_ACPI_MEMORY_NVS:
 		case EFI_PAL_CODE:
-			r->flags = MR_F_RESERVED;
+			r.flags = MR_F_RESERVED;
 			break;
 		case EFI_MEMORY_MAPPED_IO:
 		case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
-			r->flags = MR_F_IO;
+			r.flags = MR_F_IO;
 			break;
 		case EFI_LOADER_CODE:
-			if (r->start <= text && r->end > text) {
+			if (r.start <= text && r.end > text) {
 				/* This is the unit test region. Flag the code separately. */
-				phys_addr_t tmp = r->end;
+				phys_addr_t tmp = r.end;
 
 				assert(etext <= data);
-				assert(edata <= r->end);
-				r->flags = MR_F_CODE;
-				r->end = data;
-				++r;
-				r->start = data;
-				r->end = tmp;
+				assert(edata <= r.end);
+				r.flags = MR_F_CODE;
+				r.end = data;
+				mem_region_add(&r);
+				r.start = data;
+				r.end = tmp;
+				r.flags = 0;
 			} else {
-				r->flags = MR_F_RESERVED;
+				r.flags = MR_F_RESERVED;
 			}
 			break;
 		case EFI_CONVENTIONAL_MEMORY:
@@ -366,12 +368,13 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 			break;
 		}
 
-		if (!(r->flags & MR_F_IO)) {
-			if (r->start < __phys_offset)
-				__phys_offset = r->start;
-			if (r->end > __phys_end)
-				__phys_end = r->end;
+		if (!(r.flags & MR_F_IO)) {
+			if (r.start < __phys_offset)
+				__phys_offset = r.start;
+			if (r.end > __phys_end)
+				__phys_end = r.end;
 		}
+		mem_region_add(&r);
 	}
 	__phys_end &= PHYS_MASK;
 	asm_mmu_disable();
