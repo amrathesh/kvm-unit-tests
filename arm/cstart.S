@@ -34,12 +34,24 @@ start:
 	/* zero BSS */
 	ldr	r4, =bss
 	ldr	r5, =ebss
+	mov	r3, r4
+	dmb	sy
+	dcache_by_line_op dcimvac, sy, r4, r5, r6, r7
+	mov	r4, r3
 	zero_range r4, r5, r6, r7
+	mov	r4, r3
+	dmb	sy
+	dcache_by_line_op dcimvac, sy, r4, r5, r6, r7
 
 	/* zero stack */
 	ldr	r5, =stacktop
 	sub	r4, r5, #THREAD_SIZE
+	mov	r3, r4
+	dmb	sy
+	dcache_by_line_op dcimvac, sy, r4, r5, r6, r7
+	mov	r4, r3
 	zero_range r4, r5, r6, r7
+	/* asm_mmu_enable will perform the rest of the cache maintenance. */
 
 	/*
 	 * set stack, making room at top of stack for cpu0's
@@ -145,7 +157,12 @@ secondary_entry:
 	lsr	r2, #THREAD_SHIFT
 	lsl	r2, #THREAD_SHIFT
 	add	r3, r2, #THREAD_SIZE
+	mov	r6, r2
+	dmb	sy
+	dcache_by_line_op dcimvac, sy, r2, r3, r4, r5
+	mov	r2, r6
 	zero_range r2, r3, r4, r5
+	/* asm_mmu_enable will perform the rest of the cache maintenance. */
 	mov	sp, r0
 
 	bl	exceptions_init
@@ -203,6 +220,13 @@ asm_mmu_enable:
 	/* TTBR0 */
 	mcrr	p15, 0, r0, r1, c2
 	isb
+
+	dmb	sy
+	mov	r0, sp
+	lsr	r0, #THREAD_SHIFT
+	lsl	r0, #THREAD_SHIFT
+	add	r1, r0, #THREAD_SIZE
+	dcache_by_line_op dcimvac, sy, r0, r1, r2, r3
 
 	/* SCTLR */
 	mrc	p15, 0, r2, c1, c0, 0

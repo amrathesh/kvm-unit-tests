@@ -5,6 +5,7 @@
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
+#include <asm/cacheflush.h>
 #include <asm/setup.h>
 #include <asm/thread_info.h>
 #include <asm/cpumask.h>
@@ -15,6 +16,7 @@
 #include <asm/pgtable.h>
 #include <asm/pgtable-hwdef.h>
 
+#include "alloc_phys.h"
 #include "io.h"
 #include "vmalloc.h"
 
@@ -183,6 +185,8 @@ void mmu_setup_early(phys_addr_t phys_end)
 	}
 
 	ioremap((phys_addr_t)(unsigned long)uart_early_base(), PAGE_SIZE);
+
+	phys_alloc_perform_cache_maintenance(dcache_clean_inval_addr_poc);
 
 	/*
 	 * Open-code part of mmu_enabled(), because at this point thread_info

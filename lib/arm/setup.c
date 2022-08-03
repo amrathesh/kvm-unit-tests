@@ -19,6 +19,7 @@
 #include <vmalloc.h>
 #include <auxinfo.h>
 #include <argv.h>
+#include <asm/cacheflush.h>
 #include <asm/thread_info.h>
 #include <asm/setup.h>
 #include <asm/page.h>
@@ -160,6 +161,7 @@ static void mem_init(phys_addr_t freemem_start)
 	struct mem_region *freemem, *r, mem = {
 		.start = (phys_addr_t)-1,
 	};
+	int nr_regions = 0;
 
 	freemem = mem_region_find(freemem_start);
 	assert(freemem && !(freemem->flags & (MR_F_IO | MR_F_CODE)));
@@ -171,6 +173,7 @@ static void mem_init(phys_addr_t freemem_start)
 			if (r->end > mem.end)
 				mem.end = r->end;
 		}
+		nr_regions++;
 	}
 	assert(mem.end && !(mem.start & ~PHYS_MASK));
 	mem.end &= PHYS_MASK;
@@ -183,6 +186,9 @@ static void mem_init(phys_addr_t freemem_start)
 
 	/* Ensure our selected freemem range is somewhere in our full range */
 	assert(freemem_start >= mem.start && freemem->end <= mem.end);
+
+	dcache_inval_poc((unsigned long)mem_regions,
+			 (unsigned long)(mem_regions + nr_regions));
 
 	__phys_offset = mem.start;	/* PHYS_OFFSET */
 	__phys_end = mem.end;		/* PHYS_END */
@@ -240,32 +246,69 @@ static void timer_save_state(void)
 	__timer_state.vtimer.irq_flags = fdt32_to_cpu(data[8]);
 }
 
-void setup(const void *fdt, phys_addr_t freemem_start)
+extern const void *fdt;
+static void do_fdt_move(void *freemem, const void *fdt_addr, u32 *fdt_size)
 {
-	void *freemem;
-	const char *bootargs, *tmp;
-	u32 fdt_size;
 	int ret;
 
-	assert(sizeof(long) == 8 || freemem_start < (3ul << 30));
-	freemem = (void *)(unsigned long)freemem_start;
-
 	/* Move the FDT to the base of free memory */
-	fdt_size = fdt_totalsize(fdt);
-	ret = fdt_move(fdt, freemem, fdt_size);
+	*fdt_size = fdt_totalsize(fdt_addr);
+
+	/* Invalidate potentially dirty cache lines. */
+	dcache_inval_poc((unsigned long)freemem, (unsigned long)freemem + *fdt_size);
+	ret = fdt_move(fdt_addr, freemem, *fdt_size);
 	assert(ret == 0);
+
 	ret = dt_init(freemem);
+	/*
+	 * Invalidate the clean (the bootloader cleans the test image to PoC),
+	 * but potentially stale, cache line that holds the value of the
+	 * variable fdt, to force the CPU to fetch it from memory when the MMU
+	 * is enabled.
+	 */
+	dcache_clean_inval_addr_poc((unsigned long)&fdt);
 	assert(ret == 0);
-	freemem += fdt_size;
+}
+
+static void initrd_move(void *freemem)
+{
+	const char *tmp;
+	int ret;
 
 	/* Move the initrd to the top of the FDT */
 	ret = dt_get_initrd(&tmp, &initrd_size);
 	assert(ret == 0 || ret == -FDT_ERR_NOTFOUND);
 	if (ret == 0) {
 		initrd = freemem;
+		/* Invalidate the potentially stale value for the variable. */
+		dcache_clean_inval_addr_poc((unsigned long)&initrd);
+		/*
+		 * Invalidate potentially dirty cache lines for where the initrd
+		 * will be moved.
+		 */
+		dcache_inval_poc((unsigned long)freemem, (unsigned long)freemem + initrd_size);
 		memmove(initrd, tmp, initrd_size);
-		freemem += initrd_size;
 	}
+}
+
+void setup(const void *fdt_addr, phys_addr_t freemem_start)
+{
+	void *freemem;
+	const char *bootargs;
+	u32 fdt_size;
+	int ret;
+
+	assert(sizeof(long) == 8 || freemem_start < (3ul << 30));
+	freemem = (void *)(unsigned long)freemem_start;
+
+	do_fdt_move(freemem, fdt_addr, &fdt_size);
+	freemem += fdt_size;
+
+	initrd_move(freemem);
+	freemem += initrd_size;
+
+	/* Invalidate potentially stale cache lines for the fdt and initrd. */
+	dcache_inval_poc(freemem_start, (unsigned long)freemem);
 
 	mem_regions_add_dt_regions();
 	mem_regions_add_assumed();

@@ -49,6 +49,7 @@ start:
 	add     x5, x5, :lo12:reloc_start
 	adrp	x6, reloc_end
 	add     x6, x6, :lo12:reloc_end
+
 1:
 	cmp	x5, x6
 	b.hs	1f
@@ -56,22 +57,44 @@ start:
 	ldr	x8, [x5, #16]			// r_addend
 	add	x8, x8, x4			// val = base + r_addend
 	str	x8, [x4, x7]			// base[r_offset] = val
+	add	x7, x4, x7
+	dmb	sy
+	/* Image is cleaned to PoC, no need for CMOs before the memory write. */
+	dc	ivac, x7
 	add	x5, x5, #24
 	b	1b
 
 1:
+	/* Complete the cache maintenance operations. */
+	dsb	sy
+
 	/* zero BSS */
 	adrp	x4, bss
 	add	x4, x4, :lo12:bss
 	adrp    x5, ebss
 	add     x5, x5, :lo12:ebss
+	/* Stash start of bss, as dcache_by_line_op corrupts it. */
+	mov	x9, x4
+	dmb	sy
+	/* Make sure there are no dirty cache lines that can be evicted. */
+	dcache_by_line_op ivac, sy, x4, x5, x6, x7
+	mov	x4, x9
 	zero_range x4, x5
+	mov	x9, x4
+	dmb	sy
+	/* Invalidate clean and potentially stale cache lines. */
+	dcache_by_line_op ivac, sy, x4, x5, x6, x7
 
 	/* zero and set up stack */
 	adrp    x5, stacktop
 	add     x5, x5, :lo12:stacktop
 	sub	x4, x5, #THREAD_SIZE
+	mov	x9, x4
+	dmb	sy
+	dcache_by_line_op ivac, sy, x4, x5, x6, x7
+	mov	x4, x9
 	zero_range x4, x5
+	/* asm_mmu_enable will perform the rest of the cache maintenance. */
 
 	/* set SCTLR_EL1 to a known value */
 	ldr	x4, =INIT_SCTLR_EL1_MMU_OFF
@@ -143,7 +166,12 @@ secondary_entry:
 	ldr	x0, [x0, :lo12:secondary_data]
 	and	x1, x0, #THREAD_MASK
 	add	x2, x1, #THREAD_SIZE
+	mov	x9, x1
+	dmb	sy
+	dcache_by_line_op ivac, sy, x1, x2, x3, x4
+	mov	x1, x9
 	zero_range x1, x2
+	/* asm_mmu_enable will perform the rest of the cache maintenance. */
 	mov	sp, x0
 
 	/* Enable FP/ASIMD */
@@ -235,6 +263,12 @@ asm_mmu_enable:
 	/* TTBR0 */
 	msr	ttbr0_el1, x0
 	isb
+
+	dmb	sy
+	mov	x9, sp
+	and	x9, x9, #THREAD_MASK
+	add	x10, x9, #THREAD_SIZE
+	dcache_by_line_op ivac, sy, x9, x10, x11, x12
 
 	/* SCTLR */
 	mrs	x1, sctlr_el1

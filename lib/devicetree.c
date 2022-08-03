@@ -7,7 +7,7 @@
 #include "libfdt/libfdt.h"
 #include "devicetree.h"
 
-static const void *fdt;
+const void *fdt;
 
 const void *dt_fdt(void)
 {

@@ -22,6 +22,8 @@
  */
 #include <linux/compiler.h>
 
+#include <asm/cacheflush.h>
+
 #define pgtable_va(x)		((void *)(unsigned long)(x))
 #define pgtable_pa(x)		((unsigned long)(x))
 
@@ -44,7 +46,9 @@
 static inline pgd_t *pgd_alloc_early(void)
 {
 	pgd_t *pgd = memalign(PAGE_SIZE, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pgd);
 	memset(pgd, 0, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pgd);
 	return pgd;
 }
 static inline pgd_t *pgd_alloc(void)
@@ -74,7 +78,9 @@ static inline pmd_t *pgd_page_vaddr(pgd_t pgd)
 static inline pmd_t *pmd_alloc_one_early(void)
 {
 	pmd_t *pmd = memalign(PAGE_SIZE, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pmd);
 	memset(pmd, 0, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pmd);
 	return pmd;
 }
 static inline pmd_t *pmd_alloc_one(void)
@@ -89,6 +95,8 @@ static inline pmd_t *pmd_alloc(pgd_t *pgd, unsigned long addr)
 		pgd_t entry;
 		pgd_val(entry) = pgtable_pa(pmd_alloc_one()) | PMD_TYPE_TABLE;
 		WRITE_ONCE(*pgd, entry);
+		if (!page_alloc_initialized())
+			dcache_clean_inval_addr_poc((unsigned long)pgd);
 	}
 	return pmd_offset(pgd, addr);
 }
@@ -107,7 +115,9 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 static inline pte_t *pte_alloc_one_early(void)
 {
 	pte_t *pte = memalign(PAGE_SIZE, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pte);
 	memset(pte, 0, PAGE_SIZE);
+	dcache_inval_page_poc((unsigned long)pte);
 	return pte;
 }
 static inline pte_t *pte_alloc_one(void)
@@ -122,6 +132,8 @@ static inline pte_t *pte_alloc(pmd_t *pmd, unsigned long addr)
 		pmd_t entry;
 		pmd_val(entry) = pgtable_pa(pte_alloc_one()) | PMD_TYPE_TABLE;
 		WRITE_ONCE(*pmd, entry);
+		if (!page_alloc_initialized())
+			dcache_clean_inval_addr_poc((unsigned long)pmd);
 
 	}
 	return pte_offset(pmd, addr);
