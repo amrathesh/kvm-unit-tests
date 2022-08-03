@@ -15,6 +15,7 @@
 #include <asm/pgtable.h>
 #include <asm/pgtable-hwdef.h>
 
+#include "io.h"
 #include "vmalloc.h"
 
 #include <linux/compiler.h>
@@ -180,6 +181,8 @@ void mmu_setup_early(phys_addr_t phys_end)
 					   __pgprot(PTE_WBWA | PTE_USER));
 		}
 	}
+
+	ioremap((phys_addr_t)(unsigned long)uart_early_base(), PAGE_SIZE);
 
 	/*
 	 * Open-code part of mmu_enabled(), because at this point thread_info

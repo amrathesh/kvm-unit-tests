@@ -15,6 +15,8 @@
 #include <asm/psci.h>
 #include <asm/spinlock.h>
 #include <asm/io.h>
+#include <asm/mmu.h>
+#include <asm/thread_info.h>
 
 #include "io.h"
 
@@ -28,6 +30,29 @@ static struct spinlock uart_lock;
  */
 #define UART_EARLY_BASE (u8 *)(unsigned long)CONFIG_UART_EARLY_BASE
 static volatile u8 *uart0_base = UART_EARLY_BASE;
+
+static void uart_unmap_early_base(void)
+{
+	pteval_t *ptevalp;
+	pgd_t *pgtable;
+
+	if (mmu_enabled()) {
+		pgtable = current_thread_info()->pgtable;
+	} else {
+		pgtable = mmu_idmap;
+	}
+
+	/*
+	 * The UART has been mapped early in the boot process and the PTE has
+	 * been allocated using the physical allocator, which means it cannot be
+	 * freed.
+	 */
+	ptevalp = mmu_get_pte(pgtable, (uintptr_t)UART_EARLY_BASE);
+	if (ptevalp) {
+		WRITE_ONCE(*ptevalp, 0);
+		flush_tlb_page((uintptr_t)UART_EARLY_BASE);
+	}
+}
 
 static void uart0_init(void)
 {
@@ -70,7 +95,13 @@ static void uart0_init(void)
 		printf("WARNING: early print support may not work. "
 		       "Found uart at %p, but early base is %p.\n",
 			uart0_base, UART_EARLY_BASE);
+		uart_unmap_early_base();
 	}
+}
+
+void __iomem *uart_early_base(void)
+{
+	return UART_EARLY_BASE;
 }
 
 void io_init(void)

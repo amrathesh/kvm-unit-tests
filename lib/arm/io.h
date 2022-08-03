@@ -7,6 +7,9 @@
 #ifndef _ARM_IO_H_
 #define _ARM_IO_H_
 
+#include <asm/io.h>
+
 extern void io_init(void);
+extern void __iomem *uart_early_base(void);
 
 #endif
