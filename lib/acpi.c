@@ -52,7 +52,7 @@ void *find_acpi_table_addr(u32 sig)
 		if (!fadt)
 			return NULL;
 
-		return (void *)(ulong)fadt->firmware_ctrl;
+		return (void *)(ulong) fadt->firmware_ctrl;
 	}
 
 	rsdp = get_rsdp();
@@ -64,7 +64,7 @@ void *find_acpi_table_addr(u32 sig)
 	if (sig == RSDP_SIGNATURE)
 		return rsdp;
 
-	rsdt = (void *)(ulong)rsdp->rsdt_physical_address;
+	rsdt = (void *)(ulong) rsdp->rsdt_physical_address;
 	if (!rsdt || rsdt->signature != RSDT_SIGNATURE)
 		rsdt = NULL;
 
