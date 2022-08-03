@@ -139,8 +139,9 @@ extern void halt(int code);
 void exit(int code)
 {
 	/*
-	 * Print the test return code in the format used by chr-testdev so the
-	 * runner can pick it up if there is chr-testdev is not present.
+	 * Print the test return code in the following format which is
+	 * consistent with powerpc and s390x. The runner can pick it
+	 * up when chr-testdev is not present.
 	 */
 	printf("\nEXIT: STATUS=%d\n", ((code) << 1) | 1);
 
