@@ -115,12 +115,10 @@ _start:
 
 	/* Align sp; this is necessary due to way we store cpu0's thread_info */
 	mov		x29, sp
-	and		x29, x29, #THREAD_MASK
 	mov		x30, sp
-	mov		sp, x29
-	str		x30, [sp, #-16]!
-
-	mov             x29, sp
+	and		x30, x30, #THREAD_MASK
+	mov		sp, x30
+	str		x29, [sp, #-16]!
 
 	stp		x0, x1, [sp, #-16]!
 
