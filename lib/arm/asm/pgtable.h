@@ -41,10 +41,16 @@
 #define pgd_offset(pgtable, addr) ((pgtable) + pgd_index(addr))
 
 #define pgd_free(pgd) free(pgd)
+static inline pgd_t *pgd_alloc_early(void)
+{
+	pgd_t *pgd = memalign(PAGE_SIZE, PAGE_SIZE);
+	memset(pgd, 0, PAGE_SIZE);
+	return pgd;
+}
 static inline pgd_t *pgd_alloc(void)
 {
 	assert(PTRS_PER_PGD * sizeof(pgd_t) <= PAGE_SIZE);
-	pgd_t *pgd = alloc_page();
+	pgd_t *pgd = page_alloc_initialized() ? alloc_page() : pgd_alloc_early();
 	return pgd;
 }
 
@@ -65,10 +71,16 @@ static inline pmd_t *pgd_page_vaddr(pgd_t pgd)
 	(pgd_page_vaddr(*(pgd)) + pmd_index(addr))
 
 #define pmd_free(pmd) free_page(pmd)
+static inline pmd_t *pmd_alloc_one_early(void)
+{
+	pmd_t *pmd = memalign(PAGE_SIZE, PAGE_SIZE);
+	memset(pmd, 0, PAGE_SIZE);
+	return pmd;
+}
 static inline pmd_t *pmd_alloc_one(void)
 {
 	assert(PTRS_PER_PMD * sizeof(pmd_t) == PAGE_SIZE);
-	pmd_t *pmd = alloc_page();
+	pmd_t *pmd = page_alloc_initialized() ? alloc_page() : pmd_alloc_one_early();
 	return pmd;
 }
 static inline pmd_t *pmd_alloc(pgd_t *pgd, unsigned long addr)
@@ -92,10 +104,16 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 	(pmd_page_vaddr(*(pmd)) + pte_index(addr))
 
 #define pte_free(pte) free_page(pte)
+static inline pte_t *pte_alloc_one_early(void)
+{
+	pte_t *pte = memalign(PAGE_SIZE, PAGE_SIZE);
+	memset(pte, 0, PAGE_SIZE);
+	return pte;
+}
 static inline pte_t *pte_alloc_one(void)
 {
 	assert(PTRS_PER_PTE * sizeof(pte_t) == PAGE_SIZE);
-	pte_t *pte = alloc_page();
+	pte_t *pte = page_alloc_initialized() ? alloc_page() : pte_alloc_one_early();
 	return pte;
 }
 static inline pte_t *pte_alloc(pmd_t *pmd, unsigned long addr)
@@ -104,6 +122,7 @@ static inline pte_t *pte_alloc(pmd_t *pmd, unsigned long addr)
 		pmd_t entry;
 		pmd_val(entry) = pgtable_pa(pte_alloc_one()) | PMD_TYPE_TABLE;
 		WRITE_ONCE(*pmd, entry);
+
 	}
 	return pte_offset(pmd, addr);
 }

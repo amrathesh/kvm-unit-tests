@@ -12,11 +12,10 @@
 #include <asm/setup.h>
 #include <asm/page.h>
 #include <asm/io.h>
-
-#include "alloc_page.h"
-#include "vmalloc.h"
-#include <asm/pgtable-hwdef.h>
 #include <asm/pgtable.h>
+#include <asm/pgtable-hwdef.h>
+
+#include "vmalloc.h"
 
 #include <linux/compiler.h>
 
@@ -153,7 +152,7 @@ void mmu_set_range_sect(pgd_t *pgtable, uintptr_t virt_offset,
 	}
 }
 
-void *setup_mmu(phys_addr_t phys_end, void *unused)
+void mmu_setup_early(phys_addr_t phys_end)
 {
 	struct mem_region *r;
 
@@ -168,9 +167,7 @@ void *setup_mmu(phys_addr_t phys_end, void *unused)
 			"Unsupported translation granule %ld\n", PAGE_SIZE);
 #endif
 
-	if (!mmu_idmap)
-		mmu_idmap = pgd_alloc();
-
+	mmu_idmap = pgd_alloc();
 	for (r = mem_regions; r->end; ++r) {
 		if (r->flags & MR_F_IO) {
 			continue;
@@ -184,7 +181,22 @@ void *setup_mmu(phys_addr_t phys_end, void *unused)
 		}
 	}
 
-	mmu_enable(mmu_idmap);
+	/*
+	 * Open-code part of mmu_enabled(), because at this point thread_info
+	 * hasn't been initialized. mmu_mark_enabled() cannot be called here
+	 * because the cpumask operations can only be called later, after
+	 * nr_cpus is initialized in cpu_init().
+	 */
+	asm_mmu_enable((phys_addr_t)(unsigned long)mmu_idmap);
+	current_thread_info()->pgtable = mmu_idmap;
+}
+
+void *setup_mmu(phys_addr_t phys_end, void *unused1)
+{
+	assert(mmu_idmap);
+
+	mmu_mark_enabled(0);
+
 	return mmu_idmap;
 }
 

@@ -26,6 +26,7 @@
 #include <asm/smp.h>
 #include <asm/timer.h>
 #include <asm/psci.h>
+#include <asm/mmu.h>
 
 #include "io.h"
 
@@ -188,6 +189,9 @@ static void mem_init(phys_addr_t freemem_start)
 
 	phys_alloc_init(freemem_start, freemem->end - freemem_start);
 	phys_alloc_set_minimum_alignment(SMP_CACHE_BYTES);
+
+	if (!(auxinfo.flags & AUXINFO_MMU_OFF))
+		mmu_setup_early(freemem->end);
 
 	phys_alloc_get_unused(&base, &top);
 	base = PAGE_ALIGN(base);
