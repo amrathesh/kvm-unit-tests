@@ -134,16 +134,6 @@ get_mmu_off:
 
 .global secondary_entry
 secondary_entry:
-	/* enable the MMU unless requested off */
-	bl	get_mmu_off
-	cmp	r0, #0
-	bne	1f
-	mov	r1, #0
-	ldr	r0, =mmu_idmap
-	ldr	r0, [r0]
-	bl	asm_mmu_enable
-
-1:
 	/*
 	 * Set the stack, and set up vector table
 	 * and exception stacks. Exception stacks
@@ -161,6 +151,16 @@ secondary_entry:
 	bl	exceptions_init
 	bl	enable_vfp
 
+	/* enable the MMU unless requested off */
+	bl	get_mmu_off
+	cmp	r0, #0
+	bne	1f
+	mov	r1, #0
+	ldr	r0, =mmu_idmap
+	ldr	r0, [r0]
+	bl	asm_mmu_enable
+
+1:
 	/* finish init in C code */
 	bl	secondary_cinit
 

@@ -7,6 +7,8 @@
  */
 #include <libcflat.h>
 #include <auxinfo.h>
+
+#include <asm/cacheflush.h>
 #include <asm/thread_info.h>
 #include <asm/spinlock.h>
 #include <asm/cpumask.h>
@@ -64,6 +66,9 @@ static void __smp_boot_secondary(int cpu, secondary_entry_fn entry)
 
 	secondary_data.stack = thread_stack_alloc();
 	secondary_data.entry = entry;
+	dcache_clean_poc((unsigned long)&secondary_data,
+			 (unsigned long)&secondary_data + sizeof(secondary_data));
+
 	mmu_mark_disabled(cpu);
 	ret = cpu_psci_cpu_boot(cpu);
 	assert(ret == 0);
