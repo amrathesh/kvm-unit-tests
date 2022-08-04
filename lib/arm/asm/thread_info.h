@@ -25,6 +25,7 @@
 #ifndef __ASSEMBLY__
 #include <asm/processor.h>
 #include <alloc.h>
+#include <alloc_page.h>
 
 #ifdef __arm__
 #include <asm/ptrace.h>
@@ -40,7 +41,7 @@
 
 static inline void *thread_stack_alloc(void)
 {
-	void *sp = memalign(THREAD_ALIGNMENT, THREAD_SIZE);
+	void *sp = memalign_pages_flags(THREAD_ALIGNMENT, THREAD_SIZE, FLAG_DONTZERO);
 	return sp + THREAD_START_SP;
 }
 
