@@ -45,12 +45,6 @@ static inline void flush_tlb_page(unsigned long vaddr)
 	isb();
 }
 
-static inline void flush_dcache_addr(unsigned long vaddr)
-{
-	/* DCCIMVAC */
-	asm volatile("mcr p15, 0, %0, c7, c14, 1" :: "r" (vaddr));
-}
-
 #include <asm/mmu-api.h>
 
 #endif /* _ASMARM_MMU_H_ */

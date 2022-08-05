@@ -60,7 +60,7 @@ eabiobjs = lib/arm/eabi_compat.o
 
 FLATLIBS = $(libcflat) $(LIBFDT_archive) $(libeabi)
 %.elf: LDFLAGS = -nostdlib $(arch_LDFLAGS)
-%.elf: %.o $(FLATLIBS) $(SRCDIR)/arm/flat.lds $(cstart.o)
+%.elf: %.o $(FLATLIBS) $(SRCDIR)/arm/flat.lds $(asmobjs)
 	$(CC) $(CFLAGS) -c -o $(@:.elf=.aux.o) $(SRCDIR)/lib/auxinfo.c \
 		-DPROGNAME=\"$(@:.elf=.flat)\" -DAUXFLAGS=$(AUXFLAGS)
 	$(LD) $(LDFLAGS) -o $@ -T $(SRCDIR)/arm/flat.lds \
@@ -81,4 +81,4 @@ arm_clean: asm_offsets_clean
 	      $(TEST_DIR)/.*.d lib/arm/.*.d
 
 generated-files = $(asm-offsets)
-$(tests-all:.flat=.o) $(cstart.o) $(cflatobjs): $(generated-files)
+$(tests-all:.flat=.o) $(asmobjs) $(cflatobjs): $(generated-files)

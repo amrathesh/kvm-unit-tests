@@ -41,7 +41,9 @@
 	.ifc	\op, dccimvac
 	mcr	p15, 0, \addr, c7, c14, 1
 	.else
-	.err
+	.ifc	\op, dccmvac
+	mcr	p15, 0, \addr, c7, c10, 1
+	.endif
 	.endif
 	add	\addr, \addr, \tmp1
 	cmp	\addr, \end

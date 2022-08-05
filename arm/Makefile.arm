@@ -25,7 +25,9 @@ endif
 define arch_elf_check =
 endef
 
-cstart.o = $(TEST_DIR)/cstart.o
+asmobjs  = $(TEST_DIR)/cstart.o
+asmobjs += lib/arm/cache.o
+
 cflatobjs += lib/arm/spinlock.o
 cflatobjs += lib/arm/processor.o
 cflatobjs += lib/arm/stack.o

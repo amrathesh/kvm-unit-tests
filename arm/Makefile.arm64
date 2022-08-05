@@ -20,7 +20,9 @@ define arch_elf_check =
 		$(error $(1) has unsupported reloc types))
 endef
 
-cstart.o = $(TEST_DIR)/cstart64.o
+asmobjs  = $(TEST_DIR)/cstart64.o
+asmobjs += lib/arm64/cache.o
+
 cflatobjs += lib/arm64/processor.o
 cflatobjs += lib/arm64/spinlock.o
 cflatobjs += lib/arm64/gic-v3-its.o lib/arm64/gic-v3-its-cmd.o
