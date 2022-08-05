@@ -282,17 +282,22 @@ asm_mmu_enable:
 
 .globl asm_mmu_disable
 asm_mmu_disable:
+	/*
+	 * A test can change the memory attributes for a memory location to
+	 * Device or Inner Non-cacheable, which makes the barrier required to
+	 * avoid reordering of previous memory accesses with respect to the
+	 * cache maintenance.
+	 */
+	dmb	sy
+	mov	x9, sp
+	and	x9, x9, #THREAD_MASK
+	add	x10, x9, #THREAD_SIZE
+	dcache_by_line_op cvac, sy, x9, x10, x11, x12
+
 	mrs	x0, sctlr_el1
 	bic	x0, x0, SCTLR_EL1_M
 	msr	sctlr_el1, x0
 	isb
-
-	/* Clean + invalidate the entire memory */
-	adrp	x0, __phys_offset
-	ldr	x0, [x0, :lo12:__phys_offset]
-	adrp	x1, __phys_end
-	ldr	x1, [x1, :lo12:__phys_end]
-	dcache_by_line_op civac, sy, x0, x1, x2, x3
 
 	ret
 
