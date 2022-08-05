@@ -45,6 +45,14 @@ void phys_alloc_set_minimum_alignment(phys_addr_t align)
 	align_min = align;
 }
 
+void phys_alloc_perform_cache_maintenance(cache_maint_fn maint_fn)
+{
+	maint_fn((unsigned long)&base);
+	maint_fn((unsigned long)&used);
+	maint_fn((unsigned long)&top);
+	maint_fn((unsigned long)&align_min);
+}
+
 static void *memalign_early(size_t alignment, size_t sz)
 {
 	phys_addr_t align = (phys_addr_t)alignment;

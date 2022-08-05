@@ -15,6 +15,8 @@
  */
 #include "libcflat.h"
 
+typedef void (*cache_maint_fn)(unsigned long addr);
+
 /*
  * phys_alloc_init creates the initial free memory region of size @size
  * at @base. The minimum alignment is set to DEFAULT_MINIMUM_ALIGNMENT.
@@ -26,6 +28,12 @@ extern void phys_alloc_init(phys_addr_t base, phys_addr_t size);
  * @align.
  */
 extern void phys_alloc_set_minimum_alignment(phys_addr_t align);
+
+/*
+ * Perform cache maintenance on the internal structures that the physical
+ * allocator maintains.
+ */
+extern void phys_alloc_perform_cache_maintenance(cache_maint_fn maint_fn);
 
 /*
  * phys_alloc_show outputs all currently allocated regions with the
