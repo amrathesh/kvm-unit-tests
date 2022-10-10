@@ -36,9 +36,7 @@ static void mem_init(phys_addr_t mem_end)
 	phys_addr_t freemem_start = (phys_addr_t)&stacktop;
 	phys_addr_t base, top;
 
-	phys_alloc_init(freemem_start, mem_end - freemem_start);
-	phys_alloc_get_unused(&base, &top);
-	base = PAGE_ALIGN(base) >> PAGE_SHIFT;
+	base = PAGE_ALIGN(freemem_start) >> PAGE_SHIFT;
 	top = top >> PAGE_SHIFT;
 
 	/* Make the pages available to the physical allocator */
