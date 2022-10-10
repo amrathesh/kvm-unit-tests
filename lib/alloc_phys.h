@@ -4,10 +4,17 @@
  * phys_alloc is a very simple allocator which allows physical memory
  * to be partitioned into regions until all memory is allocated.
  *
- * Note: This is such a simple allocator that there is no way to free
- * a region. For more complicated memory management a single region
- * can be allocated, but then have its memory managed by a more
- * sophisticated allocator, e.g. a page allocator.
+ * Note: This is such a simple allocator that there is no way to free a
+ * region, and concurrent allocations are not supported. As such, it is
+ * mostly suitable for the architecture setup code, and less so for
+ * allocating memory in a test. For more complicated memory management a
+ * single region can be allocated (or the entire free memory), but then
+ * have that memory managed by a more sophisticated allocator, e.g. the
+ * page or the vmalloc allocators.
+ *
+ * Because of its simplicity, phys_alloc can easily perform cache
+ * maintenance on the state tracking variables it maintains, making it
+ * suitable for architectures which require such operations.
  *
  * Copyright (C) 2014, Red Hat Inc, Andrew Jones <drjones@redhat.com>
  *
