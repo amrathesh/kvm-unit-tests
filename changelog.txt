@@ -1,0 +1,19 @@
+Changes since v1:
+
+- Gathered Reviewed-by tags.
+- Various changes to commit messages and comments to hopefully make the code
+easier to understand.
+- Patches #3 ("s390: Do not use the physical allocator") and #9
+("lib/alloc_phys: Expand documentation with usage and limitations") are new.
+- Folded patch "arm: page.h: Add missing libcflat.h include" into #18
+("arm/arm64: Perform dcache maintenance at boot").
+- Reordered the series to group patches that touch aproximately the same code
+together - the patches that change the physical allocator are now first,
+followed come the patches that change how the secondaries are brought online.
+- Fixed several nasty bugs where the r4 register was being clobbered in the arm
+assembly.
+- Unmap the early UART address if the DTB address does not match the early
+address.
+- Added dcache maintenance when a page table is modified with the MMU disabled.
+- Moved the cache maintenance when disabling the MMU to be executed before the
+MMU is disabled.
