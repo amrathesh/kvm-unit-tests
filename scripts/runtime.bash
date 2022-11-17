@@ -130,7 +130,7 @@ function run()
         done
     fi
 
-    last_line=$(premature_failure > >(tail -1)) && {
+    last_line=$(premature_failure > >(grep "Dummy Hello World!")) && {
         skip=true
         if [ "${CONFIG_EFI}" == "y" ] && [[ "${last_line}" =~ "Dummy Hello World!" ]]; then
             skip=false
