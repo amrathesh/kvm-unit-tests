@@ -29,7 +29,7 @@
 #include <asm/timer.h>
 #include <asm/psci.h>
 #include <asm/mmu.h>
-
+#include <asm/cacheflush.h>
 #include "io.h"
 
 #define MAX_DT_MEM_REGIONS	16
@@ -425,7 +425,23 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 		mem_region_add(&r);
 	}
 	__phys_end &= PHYS_MASK;
+	dcache_clean_poc((unsigned long)mem_regions, (unsigned long)&mem_regions[NR_INITIAL_MEM_REGIONS + 2]);
+
+	dcache_clean_addr_poc((unsigned long)&__phys_offset);
+	dcache_clean_addr_poc((unsigned long)&__phys_end);
+	dcache_clean_addr_poc((unsigned long)&free_mem_start);
+	dcache_clean_addr_poc((unsigned long)&free_mem_pages);
+
+	dcache_clean_poc((unsigned long)efi_bootinfo, (unsigned long)efi_bootinfo + sizeof(*efi_bootinfo));
+
 	asm_mmu_disable();
+
+	dcache_inval_poc((unsigned long)mem_regions, (unsigned long)&mem_regions[NR_INITIAL_MEM_REGIONS + 2]);
+
+	dcache_clean_inval_addr_poc((unsigned long)&__phys_offset);
+	dcache_clean_inval_addr_poc((unsigned long)&__phys_end);
+	dcache_clean_inval_addr_poc((unsigned long)&free_mem_start);
+	dcache_clean_inval_addr_poc((unsigned long)&free_mem_pages);
 
 	if (free_mem_pages == 0)
 		return EFI_OUT_OF_RESOURCES;
