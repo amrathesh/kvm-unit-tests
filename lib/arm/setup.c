@@ -352,6 +352,7 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 	int i;
 	unsigned long free_mem_pages = 0;
 	unsigned long free_mem_start = 0;
+	unsigned long free_mem_size;
 	struct efi_boot_memmap *map = &(efi_bootinfo->mem_map);
 	efi_memory_desc_t *buffer = *map->map;
 	efi_memory_desc_t *d = NULL;
@@ -431,8 +432,12 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 
 	assert(sizeof(long) == 8 || free_mem_start < (3ul << 30));
 
-	phys_alloc_init(free_mem_start, free_mem_pages << EFI_PAGE_SHIFT);
+	free_mem_size = free_mem_pages << EFI_PAGE_SHIFT;
+	phys_alloc_init(free_mem_start, free_mem_size);
 	phys_alloc_set_minimum_alignment(SMP_CACHE_BYTES);
+
+	if (!(auxinfo.flags & AUXINFO_MMU_OFF))
+		mmu_setup_early(free_mem_start + free_mem_size);
 
 	phys_alloc_get_unused(&base, &top);
 	base = PAGE_ALIGN(base);
