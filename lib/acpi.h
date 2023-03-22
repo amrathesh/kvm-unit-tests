@@ -44,10 +44,10 @@ struct acpi_table_rsdp {	/* Root System Descriptor Pointer */
 	u32 length;			/* Length of table, in bytes, including header */ \
 	u8  revision;			/* ACPI Specification minor version # */	\
 	u8  checksum;			/* To make sum of entire table == 0 */		\
-	u8  oem_id [6];			/* OEM identification */			\
-	u8  oem_table_id [8];		/* OEM table identification */			\
+	u8  oem_id[6];			/* OEM identification */			\
+	u8  oem_table_id[8];		/* OEM table identification */			\
 	u32 oem_revision;		/* OEM revision number */			\
-	u8  asl_compiler_id [4];	/* ASL compiler vendor ID */			\
+	u8  asl_compiler_id[4];		/* ASL compiler vendor ID */			\
 	u32 asl_compiler_revision;	/* ASL compiler revision number */
 
 struct acpi_table {
