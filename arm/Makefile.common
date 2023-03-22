@@ -59,10 +59,6 @@ ifeq ($(CONFIG_EFI),y)
 cflatobjs += lib/efi.o
 endif
 
-ifeq ($(CONFIG_EFI),y)
-cflatobjs += lib/acpi.o
-endif
-
 OBJDIRS += lib/arm
 
 libeabi = lib/arm/libeabi.a
