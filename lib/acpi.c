@@ -70,7 +70,7 @@ void *find_acpi_table_addr(u32 sig)
 		return rsdt;
 
 	if (rsdp->revision >= 2) {
-		xsdt = (void *)rsdp->xsdt_physical_address;
+		xsdt = (void *)(ulong) rsdp->xsdt_physical_address;
 		if (xsdt && xsdt->signature != XSDT_SIGNATURE)
 			xsdt = NULL;
 	}
