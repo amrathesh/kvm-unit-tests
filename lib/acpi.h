@@ -292,7 +292,8 @@ struct acpi_table_gtdt {
 	u32 platform_timer_offset;
 };
 
-#pragma pack(0)
+/* Reset to default packing */
+#pragma pack()
 
 void set_efi_rsdp(struct acpi_table_rsdp *rsdp);
 void *find_acpi_table_addr(u32 sig);
