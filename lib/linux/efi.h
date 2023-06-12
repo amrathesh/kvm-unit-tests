@@ -10,6 +10,7 @@
 # define __packed		__attribute__((__packed__))
 #endif
 
+#ifndef BSA_ACS
 #define BITS_PER_LONG 64
 
 #define EFI_SUCCESS		0
@@ -26,6 +27,8 @@
 #define EFI_TIMEOUT		(18 | (1UL << (BITS_PER_LONG-1)))
 #define EFI_ABORTED		(21 | (1UL << (BITS_PER_LONG-1)))
 #define EFI_SECURITY_VIOLATION	(26 | (1UL << (BITS_PER_LONG-1)))
+
+#endif
 
 typedef unsigned long efi_status_t;
 typedef u8 efi_bool_t;
@@ -105,6 +108,7 @@ typedef	struct {
 #define EFI_PERSISTENT_MEMORY		14
 #define EFI_MAX_MEMORY_TYPE		15
 
+#ifndef BSA_ACS
 /* Attribute values: */
 #define EFI_MEMORY_UC		((u64)0x0000000000000001ULL)	/* uncached */
 #define EFI_MEMORY_WC		((u64)0x0000000000000002ULL)	/* write-coalescing */
@@ -127,6 +131,7 @@ typedef	struct {
 #define EFI_PAGE_SIZE		(1UL << EFI_PAGE_SHIFT)
 #define EFI_PAGES_MAX		(U64_MAX >> EFI_PAGE_SHIFT)
 
+#endif
 typedef struct {
 	u32 type;
 	u32 pad;
@@ -167,10 +172,12 @@ int __efi_capsule_setup_info(struct capsule_info *cap_info);
 /*
  * Types and defines for Time Services
  */
+
+#ifndef BSA_ACS
 #define EFI_TIME_ADJUST_DAYLIGHT 0x1
 #define EFI_TIME_IN_DAYLIGHT     0x2
 #define EFI_UNSPECIFIED_TIMEZONE 0x07ff
-
+#endif
 typedef struct {
 	u16 year;
 	u8 month;
@@ -195,12 +202,13 @@ typedef void *efi_event_t;
 /* Note that notifications won't work in mixed mode */
 typedef void (__efiapi *efi_event_notify_t)(efi_event_t, void *);
 
+#ifndef BSA_ACS
 typedef enum {
 	EfiTimerCancel,
 	EfiTimerPeriodic,
 	EfiTimerRelative
 } EFI_TIMER_DELAY;
-
+#endif
 /*
  * EFI Device Path information
  */
@@ -331,9 +339,10 @@ typedef struct {
 /*
  * EFI Runtime Services table
  */
+#ifndef BSA_ACS
 #define EFI_RUNTIME_SERVICES_SIGNATURE ((u64)0x5652453544e5552ULL)
 #define EFI_RUNTIME_SERVICES_REVISION  0x00010000
-
+#endif
 typedef efi_status_t efi_get_time_t (efi_time_t *tm, efi_time_cap_t *tc);
 typedef efi_status_t efi_set_time_t (efi_time_t *tm);
 typedef efi_status_t efi_get_wakeup_time_t (efi_bool_t *enabled, efi_bool_t *pending,
@@ -386,8 +395,9 @@ typedef struct {
 	efi_query_variable_info_t __efiapi	*query_variable_info;
 } efi_runtime_services_t;
 
+#ifndef BSA_ACS
 #define EFI_SYSTEM_TABLE_SIGNATURE ((u64)0x5453595320494249ULL)
-
+#endif
 #define EFI_2_30_SYSTEM_TABLE_REVISION  ((2 << 16) | (30))
 #define EFI_2_20_SYSTEM_TABLE_REVISION  ((2 << 16) | (20))
 #define EFI_2_10_SYSTEM_TABLE_REVISION  ((2 << 16) | (10))

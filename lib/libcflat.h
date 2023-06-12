@@ -36,10 +36,12 @@
 #define __ALIGN(x, a)		__ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define ALIGN(x, a)		__ALIGN((x), (a))
 #define ALIGN_DOWN(x, a)	__ALIGN((x) - ((a) - 1), (a))
-#define IS_ALIGNED(x, a)	(((x) & ((typeof(x))(a) - 1)) == 0)
 
+#ifndef BSA_ACS
+#define IS_ALIGNED(x, a)	(((x) & ((typeof(x))(a) - 1)) == 0)
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 #define MAX(a, b)		((a) > (b) ? (a) : (b))
+#endif
 
 typedef uint8_t		u8;
 typedef int8_t		s8;
@@ -119,7 +121,9 @@ bool simple_glob(const char *text, const char *pattern);
 extern void dump_stack(void);
 extern void dump_frame_stack(const void *instruction, const void *frame);
 
+#ifndef BSA_ACS
 #define ARRAY_SIZE(_a) (sizeof(_a)/sizeof((_a)[0]))
+#endif
 
 #define container_of(ptr, type, member) ({				\
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);		\

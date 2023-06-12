@@ -327,6 +327,12 @@ static efi_status_t efi_mem_init(efi_bootinfo_t *efi_bootinfo)
 	efi_memory_desc_t *d = NULL;
 	phys_addr_t base, top;
 	struct mem_region r;
+#ifdef BSA_ACS
+	uint8_t *_etext = NULL ;
+	uint8_t *_edata = NULL ;
+	uint8_t *_text = NULL ;
+	uint8_t *_data = NULL ;
+#endif
 	uintptr_t text = (uintptr_t)&_text, etext = __ALIGN((uintptr_t)&_etext, 4096);
 	uintptr_t data = (uintptr_t)&_data, edata = __ALIGN((uintptr_t)&_edata, 4096);
 

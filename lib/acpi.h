@@ -1,5 +1,5 @@
-#ifndef _ACPI_H_
-#define _ACPI_H_
+#ifndef _ACPI_H_LITMUS
+#define _ACPI_H_LITMUS
 
 #include "libcflat.h"
 
