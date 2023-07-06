@@ -6,7 +6,10 @@
  */
 #ifndef _ERRATA_H_
 #define _ERRATA_H_
+
+#ifndef BSA_ACS
 #include "config.h"
+#endif
 
 #ifndef CONFIG_ERRATA_FORCE
 #define CONFIG_ERRATA_FORCE 0

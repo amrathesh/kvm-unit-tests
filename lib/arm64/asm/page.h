@@ -10,7 +10,11 @@
  * This work is licensed under the terms of the GNU GPL, version 2.
  */
 
+#ifndef BSA_ACS
 #include <config.h>
+#else
+#define CONFIG_PAGE_SIZE _AC(4096, UL)
+#endif
 #include <linux/const.h>
 #include <libcflat.h>
 

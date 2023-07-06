@@ -11,7 +11,11 @@
 #include <libcflat.h>
 #include <devicetree.h>
 #include <chr-testdev.h>
+#ifndef BSA_ACS
 #include <config.h>
+#else
+#define CONFIG_UART_EARLY_BASE 0x09000000
+#endif
 #include <asm/psci.h>
 #include <asm/spinlock.h>
 #include <asm/io.h>

@@ -107,12 +107,13 @@ static void bad_exception(enum vector v, struct pt_regs *regs,
 	unsigned long far;
 	bool far_valid = get_far(esr, &far);
 	unsigned int ec = esr >> ESR_EL1_EC_SHIFT;
+#ifndef BSA_ACS
 	uintptr_t text = (uintptr_t)&_text;
 
 	printf("Load address: %" PRIxPTR "\n", text);
 	printf("PC: %" PRIxPTR " PC offset: %" PRIxPTR "\n",
 	       (uintptr_t)regs->pc, (uintptr_t)regs->pc - text);
-
+#endif
 	if (bad_vector) {
 		if (v < VECTOR_MAX)
 			printf("Unhandled vector %d (%s)\n", v,
