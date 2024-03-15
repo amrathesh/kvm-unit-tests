@@ -30,10 +30,14 @@
 #include "io.h"
 
 #define MAX_DT_MEM_REGIONS	16
-#define NR_EXTRA_MEM_REGIONS	64
+#define NR_EXTRA_MEM_REGIONS	256
 #define NR_INITIAL_MEM_REGIONS	(MAX_DT_MEM_REGIONS + NR_EXTRA_MEM_REGIONS)
 
 extern unsigned long _text, _etext, _data, _edata;
+#ifdef BSA_ACS
+extern void asm_setup_el2(void);
+extern void asm_drop_el1(void);
+#endif
 
 char *initrd;
 u32 initrd_size;
@@ -452,12 +456,23 @@ efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
 		return status;
 	}
 
+	/* mem_init must be called before io_init */
+	io_init();
+
+#ifdef BSA_ACS
+    /* if system running at EL2, drop to EL1 */
+	if (current_level() == CurrentEL_EL2) {
+		printf("\nSetting up EL2 ...");
+		asm_setup_el2();
+		printf("\nDropping to EL1 ...");
+		asm_drop_el1();
+	}
+#endif
+
 	psci_set_conduit();
 	cpu_init();
 	/* cpu_init must be called before thread_info_init */
 	thread_info_init(current_thread_info(), 0);
-	/* mem_init must be called before io_init */
-	io_init();
 
 	timer_save_state();
 	if (initrd) {
