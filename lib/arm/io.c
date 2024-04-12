@@ -11,10 +11,14 @@
 #include <libcflat.h>
 #include <devicetree.h>
 #include <chr-testdev.h>
+#include <asm/delay.h>
 #ifndef BSA_ACS
 #include <config.h>
 #else
-#define CONFIG_UART_EARLY_BASE 0x09000000
+// QEMU UART address
+//#define CONFIG_UART_EARLY_BASE 0x09000000
+// RPI 4B UART address
+#define CONFIG_UART_EARLY_BASE 0xFE201000
 #endif
 #include <asm/psci.h>
 #include <asm/spinlock.h>
@@ -78,9 +82,14 @@ static void uart0_init_fdt(void)
 static void uart0_init_acpi(void)
 {
 	struct spcr_descriptor *spcr = find_acpi_table_addr(SPCR_SIGNATURE);
-
+#ifndef BSA_ACS
 	assert_msg(spcr, "Unable to find ACPI SPCR");
-	uart0_base = ioremap(spcr->serial_port.address, spcr->serial_port.bit_width);
+#endif
+	if (spcr)
+	    uart0_base = ioremap(spcr->serial_port.address, spcr->serial_port.bit_width);
+	else
+	    uart0_base = ioremap((uint64_t)uart0_base, 0x20);
+    return;
 }
 #else
 
@@ -110,8 +119,16 @@ void io_init(void)
 void puts(const char *s)
 {
 	spin_lock(&uart_lock);
-	while (*s)
+	while (*s) {
+		/* force carriage return for newline */
+        if (*s == '\n')  {
+			writeb('\r', uart0_base);
+		}
 		writeb(*s++, uart0_base);
+		/* TODO need to implement flow control, for now
+		   introducing a delay for UART to flush it's buffer */
+		mdelay(1);
+	}
 	spin_unlock(&uart_lock);
 }
 
